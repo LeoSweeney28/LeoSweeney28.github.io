@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FRC 2026 — REBUILT Scout</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Exo+2:wght@300;400;600;800;900&display=swap');
+
+:root {
+  --bg: #080c12;
+  --s1: #0d1420;
+  --s2: #111d2e;
+  --s3: #162033;
+  --border: #1c2d42;
+  --border2: #243447;
+  --red: #f03e3e;
+  --red-dim: #3d1a1a;
+  --blue: #2f80ed;
+  --blue-dim: #122040;
+  --blue-bright: #5ba3ff;
+  --green: #1db954;
+  --green-dim: #0d2a1a;
+  --amber: #f5a623;
+  --amber-dim: #2d2010;
+  --cyan: #00d4ff;
+  --text: #dde8f5;
+  --text2: #8fa8c4;
+  --text3: #4a6280;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Exo 2', sans-serif;
+  --ui: 'Rajdhani', sans-serif;
+  --glow-blue: 0 0 20px rgba(47,128,237,0.3);
+  --glow-green: 0 0 20px rgba(29,185,84,0.3);
+  --glow-red: 0 0 20px rgba(240,62,62,0.3);
+  --glow-amber: 0 0 20px rgba(245,166,35,0.3);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100vh;padding-bottom:80px;background-image:radial-gradient(ellipse at 20% 0%,rgba(47,128,237,.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(0,212,255,.04) 0%,transparent 60%)}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:200;background:rgba(8,12,18,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:12px;height:52px}
+.logo{font-family:var(--display);font-weight:900;font-size:18px;letter-spacing:3px;text-transform:uppercase;color:#fff;display:flex;align-items:center;gap:8px}
+.logo-accent{color:var(--cyan)}
+.logo-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.header-chip{font-family:var(--mono);font-size:9px;letter-spacing:2px;padding:3px 8px;border:1px solid var(--border2);border-radius:2px;color:var(--text3)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.entry-count{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.entry-count b{color:var(--cyan)}
+
+/* TABS */
+.tab-bar{display:flex;background:var(--s1);border-bottom:1px solid var(--border);padding:0 12px;gap:2px;overflow-x:auto}
+.tab{background:none;border:none;font-family:var(--display);font-weight:600;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:12px 16px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;margin-bottom:-1px}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+
+/* LAYOUT */
+.container{max-width:900px;margin:0 auto;padding:16px 12px}
+
+/* SECTION */
+.section{margin-bottom:14px}
+.section-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.section-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.icon-auto{background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.3)}
+.icon-teleop{background:rgba(47,128,237,.15);border:1px solid rgba(47,128,237,.3)}
+.icon-endgame{background:rgba(29,185,84,.15);border:1px solid rgba(29,185,84,.3)}
+.icon-meta{background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2)}
+.section-title{font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--text2)}
+.section-sub{font-size:10px;color:var(--text3);font-family:var(--mono);margin-left:auto}
+
+/* CARD */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:14px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+
+/* INPUTS */
+.info-row{display:grid;gap:10px;margin-bottom:10px}
+.info-row.c3{grid-template-columns:1fr 1fr 1fr}
+.info-row.c2{grid-template-columns:1fr 1fr}
+.field-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:5px}
+input[type=text],input[type=number],select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:14px;padding:8px 10px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,128,237,.12)}
+select option{background:#111d2e}
+textarea{resize:vertical;min-height:72px;font-size:12px;line-height:1.5}
+
+/* COUNTER BLOCK */
+.counter-grid{display:grid;gap:10px}
+.counter-grid.c2{grid-template-columns:1fr 1fr}
+.counter-block{background:var(--bg);border:1px solid var(--border);border-radius:7px;overflow:hidden;transition:border-color .2s}
+.counter-block:focus-within{border-color:var(--blue)}
+.counter-top{padding:7px 10px 4px;display:flex;align-items:center;justify-content:space-between}
+.counter-name{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase}
+.counter-pts{font-family:var(--mono);font-size:9px;color:var(--text3)}
+.counter-pts b{color:var(--amber)}
+.counter-main{display:flex;align-items:stretch;border-top:1px solid var(--border)}
+.cb-btn{background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;font-family:var(--mono);color:var(--text3);transition:all .15s;padding:0;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.cb-btn.minus{width:44px;border-right:1px solid var(--border)}
+.cb-btn.plus{width:44px;border-left:1px solid var(--border)}
+.cb-btn.minus:active,.cb-btn.minus:hover{background:rgba(240,62,62,.12);color:var(--red)}
+.cb-btn.plus:active,.cb-btn.plus:hover{background:rgba(29,185,84,.12);color:var(--green)}
+.cb-val{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--display);font-weight:800;font-size:32px;text-align:center;padding:6px 0;width:100%;min-width:0;-moz-appearance:textfield}
+.cb-val::-webkit-outer-spin-button,.cb-val::-webkit-inner-spin-button{-webkit-appearance:none}
+.cb-val:focus{color:var(--blue-bright)}
+.counter-quick{display:flex;border-top:1px solid var(--border)}
+.qb{flex:1;background:none;border:none;border-right:1px solid var(--border);color:var(--text3);font-family:var(--mono);font-size:10px;padding:5px 0;cursor:pointer;transition:all .15s;touch-action:manipulation}
+.qb:last-child{border-right:none}
+.qb:hover,.qb:active{background:rgba(47,128,237,.1);color:var(--blue-bright)}
+
+/* TOGGLE */
+.toggle-group{display:flex;flex-wrap:wrap;gap:6px}
+.tgl{background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text3);font-family:var(--ui);font-size:12px;font-weight:600;letter-spacing:.5px;padding:7px 13px;cursor:pointer;transition:all .15s;user-select:none;touch-action:manipulation}
+.tgl:hover{border-color:var(--border2);color:var(--text2)}
+.tgl.on{background:var(--blue-dim);border-color:var(--blue);color:var(--blue-bright)}
+.tgl.on.green{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+.tgl.on.amber{background:var(--amber-dim);border-color:var(--amber);color:var(--amber)}
+.tgl.on.red{background:var(--red-dim);border-color:var(--red);color:var(--red)}
+
+/* BOOL CHIP */
+.bool-row{display:flex;flex-wrap:wrap;gap:8px}
+.bool-chip{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text3);font-family:var(--ui);font-size:12px;font-weight:600;padding:7px 13px;cursor:pointer;transition:all .15s;user-select:none;touch-action:manipulation}
+.bool-chip .ind{width:7px;height:7px;border-radius:50%;background:var(--border2);transition:all .2s}
+.bool-chip.on{border-color:var(--green);color:var(--green)}
+.bool-chip.on .ind{background:var(--green);box-shadow:0 0 6px var(--green)}
+
+/* STARS */
+.stars{display:flex;gap:5px}
+.star{font-size:22px;cursor:pointer;color:var(--border2);transition:all .15s;line-height:1;touch-action:manipulation}
+.star.on{color:var(--amber);text-shadow:0 0 8px rgba(245,166,35,.5)}
+.star:hover{transform:scale(1.15)}
+
+/* CLIMB */
+.climb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.climb-opt{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s;touch-action:manipulation}
+.climb-opt-icon{font-size:20px;margin-bottom:4px}
+.climb-opt-label{font-family:var(--display);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);display:block}
+.climb-opt-pts{font-family:var(--mono);font-size:10px;color:var(--text3);display:block;margin-top:2px}
+.climb-opt:hover{border-color:var(--border2)}
+.climb-opt.sel{background:var(--green-dim);border-color:var(--green);box-shadow:var(--glow-green)}
+.climb-opt.sel .climb-opt-label,.climb-opt.sel .climb-opt-pts{color:var(--green)}
+
+/* SCORE PANEL */
+.score-panel{background:linear-gradient(135deg,var(--s2),var(--s3));border:1px solid var(--border2);border-radius:8px;padding:14px 16px;margin-bottom:14px;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;position:relative;overflow:hidden}
+.score-panel::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(47,128,237,.04) 0%,transparent 60%);pointer-events:none}
+.sp-item{text-align:center}
+.sp-label{font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);display:block;margin-bottom:4px}
+.sp-val{font-family:var(--display);font-weight:900;font-size:22px;color:var(--text);display:block}
+.sp-val.big{font-size:28px;color:var(--amber);text-shadow:0 0 12px rgba(245,166,35,.4)}
+
+/* SUBMIT */
+.action-row{display:flex;gap:8px}
+.btn-primary{flex:1;background:linear-gradient(135deg,var(--blue) 0%,#1a6bd4 100%);border:none;border-radius:7px;color:#fff;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:2px;text-transform:uppercase;padding:15px;cursor:pointer;transition:all .2s;box-shadow:var(--glow-blue);touch-action:manipulation}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-sec{background:none;border:1px solid var(--border);border-radius:7px;color:var(--text3);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:12px 16px;cursor:pointer;transition:all .2s;touch-action:manipulation}
+.btn-sec:hover{border-color:var(--red);color:var(--red)}
+
+/* DATA */
+.data-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.data-toolbar input{flex:1;min-width:160px}
+.icon-btn{background:none;border:1px solid var(--border);border-radius:5px;color:var(--text3);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:8px 12px;cursor:pointer;transition:all .15s;white-space:nowrap;touch-action:manipulation}
+.icon-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.icon-btn.danger:hover{border-color:var(--red);color:var(--red)}
+.entry-table{width:100%;border-collapse:collapse}
+.entry-table th{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap}
+.entry-table th:hover{color:var(--text2)}
+.entry-table td{font-family:var(--mono);font-size:12px;color:var(--text2);padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.entry-table tr:hover td{background:rgba(47,128,237,.04)}
+.td-team{font-weight:700;color:var(--text);font-size:14px}
+.td-red{color:var(--red)}
+.td-blue{color:var(--blue-bright)}
+.td-pts{color:var(--amber);font-weight:700;font-size:14px}
+.td-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px 6px;border-radius:3px;transition:all .15s}
+.td-del:hover{background:var(--red-dim);color:var(--red)}
+.note-cell{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text3);font-size:11px}
+
+/* BADGE */
+.badge{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:2px 7px;border-radius:3px;text-transform:uppercase}
+.badge-climb1{background:rgba(245,166,35,.15);color:var(--amber);border:1px solid rgba(245,166,35,.3)}
+.badge-climb2{background:rgba(47,128,237,.15);color:var(--blue-bright);border:1px solid rgba(47,128,237,.3)}
+.badge-climb3{background:rgba(29,185,84,.15);color:var(--green);border:1px solid rgba(29,185,84,.3)}
+.badge-none{background:rgba(74,98,128,.15);color:var(--text3);border:1px solid var(--border)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--s2);border:1px solid var(--green);border-radius:6px;color:var(--green);font-family:var(--mono);font-size:12px;letter-spacing:2px;text-transform:uppercase;padding:10px 24px;box-shadow:var(--glow-green);transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* MISC */
+.row-gap{margin-bottom:10px}
+.empty{text-align:center;padding:40px 20px;font-family:var(--mono);font-size:12px;color:var(--text3)}
+.divider-line{height:1px;background:var(--border);margin:10px 0}
+
+/* FLASH */
+@keyframes flash-g{0%{background:rgba(29,185,84,.2)}100%{background:transparent}}
+@keyframes flash-r{0%{background:rgba(240,62,62,.15)}100%{background:transparent}}
+.flash-g{animation:flash-g .25s ease-out}
+.flash-r{animation:flash-r .25s ease-out}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+@media(max-width:600px){
+  .info-row.c3{grid-template-columns:1fr 1fr}
+  .counter-grid.c2{grid-template-columns:1fr 1fr}
+  .climb-grid{grid-template-columns:repeat(2,1fr)}
+  .score-panel{grid-template-columns:repeat(3,1fr)}
+  .cb-val{font-size:26px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-dot"></div>FRC <span class="logo-accent">&nbsp;REBUILT</span></div>
+  <div class="header-chip">2026</div>
+  <div class="header-right"><div class="entry-count" id="entryCount"><b>0</b> saved</div></div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('scout',this)">⬡ Scout</button>
+  <button class="tab" onclick="switchTab('data',this)">◈ Data</button>
+</div>
+
+<!-- ══ SCOUT ══ -->
+<div id="tab-scout" class="container">
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon icon-meta">📋</div>
+      <div class="section-title">Match Info</div>
+    </div>
+    <div class="card">
+      <div class="info-row c3 row-gap">
+        <div><div class="field-label">Team #</div><input type="number" id="teamNum" placeholder="1234" min="1" max="9999" inputmode="numeric"></div>
+        <div><div class="field-label">Match #</div><input type="number" id="matchNum" placeholder="1" min="1" inputmode="numeric"></div>
+        <div><div class="field-label">Alliance</div><select id="alliance"><option value="red">🔴 Red</option><option value="blue">🔵 Blue</option></select></div>
+      </div>
+      <div><div class="field-label">Scout Name</div><input type="text" id="scoutName" placeholder="Your name"></div>
+    </div>
+  </div>
+
+  <!-- AUTO -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon icon-auto">⚡</div>
+      <div class="section-title">Autonomous</div>
+      <div class="section-sub">0:20 — both hubs active</div>
+    </div>
+    <div class="card">
+      <div class="counter-grid c2 row-gap">
+
+        <div class="counter-block" id="cb-autoFuel">
+          <div class="counter-top"><span class="counter-name">Fuel → Hub</span><span class="counter-pts"><b>1pt</b> each</span></div>
+          <div class="counter-main">
+            <button class="cb-btn minus" onpointerdown="startRepeat('autoFuel',-1)" onpointerup="stopRepeat()" onpointerleave="stopRepeat()" oncontextmenu="return false">−</button>
+            <input class="cb-val" type="number" id="autoFuel" value="0" min="0" inputmode="numeric" oninput="clampAndUpdate('autoFuel')">
+            <button class="cb-btn plus" onpointerdown="startRepeat('autoFuel',1)" onpointerup="stopRepeat()" onpointerleave="stopRepeat()" oncontextmenu="return false">+</button>
+          </div>
+          <div class="counter-quick">
+            <button class="qb" onclick="quickAdd('autoFuel',3)">+3</button>
+            <button class="qb" onclick="quickAdd('autoFuel',5)">+5</button>
+            <button class="qb" onclick="quickAdd('autoFuel',10)">+10</button>
+            <button class="qb" onclick="setVal('autoFuel',0)">CLR</button>
+          </div>
+        </div>
+
+        <div class="counter-block" id="cb-autoMissed">
+          <div class="counter-top"><span class="counter-name">Fuel Missed</span><span class="counter-pts">for accuracy</span></div>
+          <div class="counter-main">
+            <button class="cb-btn minus" onpointerdown="startRepeat('autoMissed',-1)" onpointerup="stopRepeat()" onpointerleave="stopRepeat()" oncontextmenu="return false">−</button>
+            <input class="cb-val" type="number" id="autoMissed" value="0" min="0" inputmode="numeric" oninput="clampAndUpdate('autoMissed')">
+            <button class="cb-btn plus" onpointerdown="startRepeat('autoMissed',1)" onpointerup="stopRepeat()" onpointerleave="stopRepeat()" oncontextmenu="return false">+</button>
+          </div>
+          <div class="counter-quick">
+            <button class="qb" onclick="quickAdd('autoMissed',1)">+1</button>
+            <button class="qb" onclick="quickAdd('autoMissed',3)">+3</button>
+            <button class="qb" onclick="quickAdd('autoMissed',5)">+5</button>
+            <button class="qb" onclick="setVal('autoMissed',0)">CLR</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="row-gap">
+        <div class="field-label" style="margin-bottom:8px">Auto Tower Climb (Level 1 = 15 pts)</div>
+        <div class="toggle-group" id="autoTowerGrp">
+          <button class="tgl on" data-val="0" onclick="setAutoTower(0)">None</button>
+          <button class="tgl" data-val="1" onclick="setAutoTower(1)">Level 1 · +15 pts</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label" style="margin-bottom:8px">Notes</div>
+        <div class="bool-row">
+          <div class="bool-chip" id="bc-leftLine" onclick="toggleBool('leftLine')"><div class="ind"></div>Left Start Line</div>
+          <div class="bool-chip" id="bc-preloaded" onclick="toggleBool('preloaded')"><div class="ind"></div>Had Preload</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELEOP -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon icon-teleop">🎮</div>
+      <div class="section-title">Teleop</div>
+      <div class="section-sub">2:20 — hub shifts</div>
+    </div>
+    <div class="card">
+      <div class="counter-grid c2 row-gap">
+
+        <div class="counter-block" id="cb-teleFuel">
+          <div class="counter-top"><span class="counter-name">Fuel → Active Hub</span><span class="counter-pts"><b>1pt</b> each</span></div>
+          <div class="counter-main">
+            <button class="cb-btn minus" onpointerdown="startRepeat('teleFuel',-1)" onpointerup="stopRepeat()" onpointerleave="stopRepeat()" oncontextmenu="return false">−</button>
+            <input class="cb-val" type="number" id="teleFuel" value="0" min="0" inputmode="numeric" oninput="clampAndUpdate('teleFuel')">
+            <button class="cb-btn plus" onpointerdown="startRepeat('teleFuel',1)" onpointerup="stopRepeat()" onpointerleave="stopRepeat()" oncontextmenu="return false">+</button>
+          </div>
+          <div class="counter-quick">
+            <button class="qb" onclick="quickAdd('teleFuel',5)">+5</button>
+            <button class="qb" onclick="quickAdd('teleFuel',10)">+10</button>
+            <button class="qb" onclick="quickAdd('teleFuel',25)">+25</button>
+            <button class="qb" onclick="setVal('teleFuel',0)">CLR</button>
+          </div>
+        </div>
+
+        <div class="counter-block" id="cb-teleMissed">
+          <div class="counter-top"><span class="counter-name">Fuel Missed / Inactive</span><span class="counter-pts">for accuracy</span></div>
+          <div class="counter-main">
+            <button class="cb-btn minus" onpointerdown="startRepeat('teleMissed',-1)" onpointerup="stopRepeat()" onpointerleave="stopRepeat()" oncontextmenu="return false">−</button>
+            <input class="cb-val" type="number" id="teleMissed" value="0" min="0" inputmode="numeric" oninput="clampAndUpdate('teleMissed')">
+            <button class="cb-btn plus" onpointerdown="startRepeat('teleMissed',1)" onpointerup="stopRepeat()" onpointerleave="stopRepeat()" oncontextmenu="return false">+</button>
+          </div>
+          <div class="counter-quick">
+            <button class="qb" onclick="quickAdd('teleMissed',1)">+1</button>
+            <button class="qb" onclick="quickAdd('teleMissed',3)">+3</button>
+            <button class="qb" onclick="quickAdd('teleMissed',5)">+5</button>
+            <button class="qb" onclick="setVal('teleMissed',0)">CLR</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="row-gap">
+        <div class="field-label" style="margin-bottom:8px">Pickup Source (select all that apply)</div>
+        <div class="toggle-group" id="pickupGrp">
+          <button class="tgl" onclick="this.classList.toggle('on')">Ground</button>
+          <button class="tgl" onclick="this.classList.toggle('on')">Depot</button>
+          <button class="tgl" onclick="this.classList.toggle('on')">Human Player</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label" style="margin-bottom:8px">Robot Actions</div>
+        <div class="bool-row">
+          <div class="bool-chip" id="bc-defense" onclick="toggleBool('defense')"><div class="ind"></div>Played Defense</div>
+          <div class="bool-chip" id="bc-crossedBump" onclick="toggleBool('crossedBump')"><div class="ind"></div>Crossed BUMP</div>
+          <div class="bool-chip" id="bc-disabled" onclick="toggleBool('disabled')"><div class="ind"></div>Got Disabled</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- END GAME -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon icon-endgame">🏆</div>
+      <div class="section-title">End Game</div>
+      <div class="section-sub">last 0:30 — both hubs active</div>
+    </div>
+    <div class="card">
+      <div class="row-gap">
+        <div class="field-label" style="margin-bottom:10px">Tower Climb Level</div>
+        <div class="climb-grid" id="climbGrid">
+          <div class="climb-opt sel" onclick="setClimb('none')"><div class="climb-opt-icon">⊘</div><span class="climb-opt-label">None</span><span class="climb-opt-pts">0 pts</span></div>
+          <div class="climb-opt" onclick="setClimb('1')"><div class="climb-opt-icon">🪜</div><span class="climb-opt-label">Level 1</span><span class="climb-opt-pts">+10 pts</span></div>
+          <div class="climb-opt" onclick="setClimb('2')"><div class="climb-opt-icon">⬆️</div><span class="climb-opt-label">Level 2</span><span class="climb-opt-pts">+20 pts</span></div>
+          <div class="climb-opt" onclick="setClimb('3')"><div class="climb-opt-icon">🚀</div><span class="climb-opt-label">Level 3</span><span class="climb-opt-pts">+30 pts</span></div>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div>
+        <div class="field-label" style="margin-bottom:8px">Climb Outcome</div>
+        <div class="bool-row">
+          <div class="bool-chip" id="bc-fell" onclick="toggleBool('fell')"><div class="ind"></div>Fell Off</div>
+          <div class="bool-chip" id="bc-attempted" onclick="toggleBool('attempted')"><div class="ind"></div>Attempted, Failed</div>
+          <div class="bool-chip" id="bc-parkOnly" onclick="toggleBool('parkOnly')"><div class="ind"></div>Parked Only</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSESSMENT -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-icon icon-meta">📊</div>
+      <div class="section-title">Assessment</div>
+    </div>
+    <div class="card">
+      <div class="info-row c2 row-gap">
+        <div>
+          <div class="field-label" style="margin-bottom:8px">Driver Skill</div>
+          <div class="stars" id="starDriver" data-key="driverRating">
+            <span class="star" onclick="setStar('driverRating',1)">★</span>
+            <span class="star" onclick="setStar('driverRating',2)">★</span>
+            <span class="star" onclick="setStar('driverRating',3)">★</span>
+            <span class="star" onclick="setStar('driverRating',4)">★</span>
+            <span class="star" onclick="setStar('driverRating',5)">★</span>
+          </div>
+        </div>
+        <div>
+          <div class="field-label" style="margin-bottom:8px">Robot Reliability</div>
+          <div class="stars" id="starReliability" data-key="reliability">
+            <span class="star" onclick="setStar('reliability',1)">★</span>
+            <span class="star" onclick="setStar('reliability',2)">★</span>
+            <span class="star" onclick="setStar('reliability',3)">★</span>
+            <span class="star" onclick="setStar('reliability',4)">★</span>
+            <span class="star" onclick="setStar('reliability',5)">★</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="row-gap">
+        <div class="field-label" style="margin-bottom:8px">Fouls / Cards</div>
+        <div class="toggle-group" id="foulGrp">
+          <button class="tgl on" data-foul="none" onclick="setSingle('foulGrp',this)">None</button>
+          <button class="tgl" data-foul="minor" onclick="setSingle('foulGrp',this)">Minor Foul</button>
+          <button class="tgl amber" data-foul="major" onclick="setSingle('foulGrp',this)">Major Foul</button>
+          <button class="tgl amber" data-foul="yellow" onclick="setSingle('foulGrp',this)">Yellow Card</button>
+          <button class="tgl red" data-foul="red" onclick="setSingle('foulGrp',this)">Red Card</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label" style="margin-bottom:6px">Notes</div>
+        <textarea id="notes" placeholder="Strengths, weaknesses, strategy, mechanical issues, human player quality…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE SCORE PREVIEW -->
+  <div class="score-panel">
+    <div class="sp-item"><span class="sp-label">Auto Fuel</span><span class="sp-val" id="pv-af">0</span></div>
+    <div class="sp-item"><span class="sp-label">Teleop Fuel</span><span class="sp-val" id="pv-tf">0</span></div>
+    <div class="sp-item"><span class="sp-label">Tower</span><span class="sp-val" id="pv-twr">0</span></div>
+    <div class="sp-item"><span class="sp-label">Accuracy</span><span class="sp-val" id="pv-acc">—</span></div>
+    <div class="sp-item"><span class="sp-label">Est. Total</span><span class="sp-val big" id="pv-tot">0</span></div>
+  </div>
+
+  <div class="action-row">
+    <button class="btn-sec" onclick="clearForm()">Clear</button>
+    <button class="btn-primary" onclick="saveEntry()">Save Entry ›</button>
+  </div>
+</div>
+
+<!-- ══ DATA ══ -->
+<div id="tab-data" class="container" style="display:none">
+  <div class="data-toolbar">
+    <input type="text" id="searchBox" placeholder="Search team, match, notes…" oninput="renderTable()">
+    <button class="icon-btn" onclick="exportCSV()">⬇ CSV</button>
+    <button class="icon-btn" onclick="exportJSON()">⬇ JSON</button>
+    <button class="icon-btn danger" onclick="clearAll()">✕ All</button>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="entry-table" id="dataTable">
+      <thead><tr>
+        <th onclick="sortBy('team')">Team ↕</th>
+        <th onclick="sortBy('match')">Match ↕</th>
+        <th>Alliance</th>
+        <th onclick="sortBy('autoFuel')">Auto ⛽↕</th>
+        <th onclick="sortBy('teleFuel')">Tele ⛽↕</th>
+        <th>Climb</th>
+        <th onclick="sortBy('estPoints')">Pts ↕</th>
+        <th onclick="sortBy('accuracy')">Acc ↕</th>
+        <th>Driver</th>
+        <th>Rely</th>
+        <th>Foul</th>
+        <th>Notes</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="emptyMsg" class="empty" style="display:none">No entries — go scout some robots!</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let entries = JSON.parse(localStorage.getItem('frc2026v2')||'[]');
+let sortKey='match', sortAsc=true;
+let climbSel='none', autoTowerSel=0;
+let bools={}, ratings={driverRating:0,reliability:0};
+let repeatTimer=null, repeatInterval=null;
+
+// ── COUNTERS ──
+function getVal(id){return Math.max(0,parseInt(document.getElementById(id).value)||0)}
+function setVal(id,v){
+  v=Math.max(0,v);
+  document.getElementById(id).value=v;
+  flashBlock('cb-'+id,v>=0?'g':'r');
+  updatePreview();
+}
+function clampAndUpdate(id){
+  const el=document.getElementById(id);
+  let v=parseInt(el.value);
+  if(isNaN(v)||v<0){v=0;el.value=0}
+  updatePreview();
+}
+function quickAdd(id,n){setVal(id,getVal(id)+n)}
+function flashBlock(blockId,type){
+  const el=document.getElementById(blockId);
+  if(!el)return;
+  el.classList.remove('flash-g','flash-r');
+  void el.offsetWidth;
+  el.classList.add(type==='g'?'flash-g':'flash-r');
+}
+function startRepeat(id,delta){
+  adj(id,delta);
+  repeatTimer=setTimeout(()=>{repeatInterval=setInterval(()=>adj(id,delta),70)},320);
+}
+function stopRepeat(){clearTimeout(repeatTimer);clearInterval(repeatInterval)}
+function adj(id,delta){setVal(id,getVal(id)+delta)}
+
+// ── AUTO TOWER ──
+function setAutoTower(val){
+  autoTowerSel=val;
+  document.querySelectorAll('#autoTowerGrp .tgl').forEach(b=>{
+    b.classList.toggle('on',parseInt(b.dataset.val)===val);
+  });
+  updatePreview();
+}
+
+// ── CLIMB ──
+function setClimb(lvl){
+  climbSel=lvl;
+  const lvls=['none','1','2','3'];
+  document.querySelectorAll('#climbGrid .climb-opt').forEach((el,i)=>el.classList.toggle('sel',lvls[i]===lvl));
+  updatePreview();
+}
+
+// ── SINGLE SELECT ──
+function setSingle(grpId,btn){
+  document.querySelectorAll('#'+grpId+' .tgl').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+// ── BOOL CHIPS ──
+function toggleBool(key){
+  bools[key]=!bools[key];
+  const el=document.getElementById('bc-'+key);
+  if(el)el.classList.toggle('on',bools[key]);
+}
+
+// ── STARS ──
+function setStar(key,val){
+  ratings[key]=val;
+  const grp=document.querySelector('[data-key="'+key+'"]');
+  if(!grp)return;
+  grp.querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('on',i<val));
+}
+
+// ── PREVIEW ──
+function updatePreview(){
+  const af=getVal('autoFuel'), tf=getVal('teleFuel');
+  const autoTwr=autoTowerSel?15:0;
+  const climbPts={none:0,'1':10,'2':20,'3':30}[climbSel]||0;
+  const twr=climbPts+autoTwr;
+  const total=af+tf+twr;
+  const shot=af+getVal('autoMissed')+tf+getVal('teleMissed');
+  const acc=shot>0?Math.round(((af+tf)/shot)*100):null;
+  document.getElementById('pv-af').textContent=af;
+  document.getElementById('pv-tf').textContent=tf;
+  document.getElementById('pv-twr').textContent=twr;
+  document.getElementById('pv-acc').textContent=acc!==null?acc+'%':'—';
+  document.getElementById('pv-tot').textContent=total;
+}
+
+// ── SAVE ──
+function saveEntry(){
+  const team=document.getElementById('teamNum').value.trim();
+  if(!team){showToast('Enter a team #!',true);return}
+  const methods=[];
+  document.querySelectorAll('#pickupGrp .tgl.on').forEach(b=>methods.push(b.textContent.trim()));
+  const foulEl=document.querySelector('#foulGrp .tgl.on');
+  const foul=foulEl?(foulEl.dataset.foul||'none'):'none';
+  const af=getVal('autoFuel'),tf=getVal('teleFuel');
+  const climbPts={none:0,'1':10,'2':20,'3':30}[climbSel]||0;
+  const autoTwr=autoTowerSel?15:0;
+  const shot=af+getVal('autoMissed')+tf+getVal('teleMissed');
+  const entry={
+    id:Date.now(),
+    team,match:document.getElementById('matchNum').value.trim()||'?',
+    alliance:document.getElementById('alliance').value,
+    scout:document.getElementById('scoutName').value.trim(),
+    autoFuel:af,autoMissed:getVal('autoMissed'),
+    autoTower:autoTowerSel,leftLine:!!bools.leftLine,preloaded:!!bools.preloaded,
+    teleFuel:tf,teleMissed:getVal('teleMissed'),
+    methods,defense:!!bools.defense,crossedBump:!!bools.crossedBump,disabled:!!bools.disabled,
+    climb:climbSel,fell:!!bools.fell,attempted:!!bools.attempted,parkOnly:!!bools.parkOnly,
+    foul,driverRating:ratings.driverRating,reliability:ratings.reliability,
+    notes:document.getElementById('notes').value.trim(),
+    estPoints:af+tf+climbPts+autoTwr,
+    accuracy:shot>0?Math.round(((af+tf)/shot)*100):null,
+  };
+  entries.push(entry);
+  save();
+  showToast('Saved — Team #'+team);
+  updateEntryCount();
+}
+
+// ── CLEAR ──
+function clearForm(){
+  ['autoFuel','autoMissed','teleFuel','teleMissed'].forEach(id=>setVal(id,0));
+  setAutoTower(0);setClimb('none');
+  bools={};
+  document.querySelectorAll('.bool-chip').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('#pickupGrp .tgl').forEach(b=>b.classList.remove('on'));
+  ratings={driverRating:0,reliability:0};
+  document.querySelectorAll('.star').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('#foulGrp .tgl').forEach(b=>b.classList.remove('on'));
+  document.querySelector('#foulGrp .tgl').classList.add('on');
+  document.getElementById('notes').value='';
+  updatePreview();
+}
+
+// ── DATA ──
+function save(){localStorage.setItem('frc2026v2',JSON.stringify(entries))}
+function updateEntryCount(){document.getElementById('entryCount').innerHTML='<b>'+entries.length+'</b> saved'}
+function climbBadge(c){
+  if(c==='1')return '<span class="badge badge-climb1">L1</span>';
+  if(c==='2')return '<span class="badge badge-climb2">L2</span>';
+  if(c==='3')return '<span class="badge badge-climb3">L3</span>';
+  return '<span class="badge badge-none">—</span>';
+}
+function renderTable(){
+  const q=document.getElementById('searchBox').value.toLowerCase();
+  let rows=[...entries];
+  if(q)rows=rows.filter(e=>String(e.team).includes(q)||String(e.match).includes(q)||(e.notes||'').toLowerCase().includes(q)||(e.alliance||'').includes(q)||(e.scout||'').toLowerCase().includes(q));
+  rows.sort((a,b)=>{
+    let av=a[sortKey],bv=b[sortKey];
+    if(typeof av==='string')av=av.toLowerCase();
+    if(typeof bv==='string')bv=bv.toLowerCase();
+    if(av<bv)return sortAsc?-1:1;
+    if(av>bv)return sortAsc?1:-1;
+    return 0;
+  });
+  const tbody=document.getElementById('tableBody');
+  const empty=document.getElementById('emptyMsg');
+  const table=document.getElementById('dataTable');
+  empty.style.display=rows.length?'none':'block';
+  table.style.display=rows.length?'':'none';
+  tbody.innerHTML=rows.map(e=>`
+    <tr>
+      <td class="td-team">#${e.team}</td>
+      <td>M${e.match}</td>
+      <td class="${e.alliance==='red'?'td-red':'td-blue'}">${e.alliance==='red'?'🔴':'🔵'} ${e.alliance}</td>
+      <td>${e.autoFuel}</td>
+      <td>${e.teleFuel}</td>
+      <td>${climbBadge(e.climb)}</td>
+      <td class="td-pts">${e.estPoints}</td>
+      <td>${e.accuracy!==null&&e.accuracy!==undefined?e.accuracy+'%':'—'}</td>
+      <td>${'★'.repeat(e.driverRating||0)||'—'}</td>
+      <td>${'★'.repeat(e.reliability||0)||'—'}</td>
+      <td>${e.foul&&e.foul!=='none'?'<span style="color:var(--amber)">'+e.foul+'</span>':'—'}</td>
+      <td class="note-cell" title="${(e.notes||'').replace(/"/g,'&quot;')}">${e.notes||'—'}</td>
+      <td><button class="td-del" onclick="delEntry(${e.id})">✕</button></td>
+    </tr>
+  `).join('');
+}
+function sortBy(key){sortKey===key?sortAsc=!sortAsc:(sortKey=key,sortAsc=true);renderTable()}
+function delEntry(id){entries=entries.filter(e=>e.id!==id);save();updateEntryCount();renderTable()}
+function clearAll(){if(!confirm('Delete ALL '+entries.length+' entries?'))return;entries=[];save();updateEntryCount();renderTable()}
+
+function exportCSV(){
+  if(!entries.length){showToast('No data!',true);return}
+  const h=['Team','Match','Alliance','Scout','AutoFuel','AutoMissed','AutoTower','LeftLine','TeleFuel','TeleMissed','Methods','Defense','CrossedBump','Disabled','Climb','Fell','Attempted','ParkOnly','Foul','DriverRating','Reliability','Accuracy%','EstPoints','Notes'];
+  const rows=entries.map(e=>[e.team,e.match,e.alliance,e.scout||'',e.autoFuel,e.autoMissed||0,e.autoTower||0,e.leftLine?1:0,e.teleFuel,e.teleMissed||0,(e.methods||[]).join('|'),e.defense?1:0,e.crossedBump?1:0,e.disabled?1:0,e.climb,e.fell?1:0,e.attempted?1:0,e.parkOnly?1:0,e.foul||'none',e.driverRating||0,e.reliability||0,e.accuracy!==null?e.accuracy:'',e.estPoints,'"'+(e.notes||'').replace(/"/g,'""')+'"'].join(','));
+  dl('frc2026_scout.csv','data:text/csv;charset=utf-8,'+encodeURIComponent([h.join(','),...rows].join('\n')));
+}
+function exportJSON(){
+  if(!entries.length){showToast('No data!',true);return}
+  dl('frc2026_scout.json','data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(entries,null,2)));
+}
+function dl(name,href){const a=document.createElement('a');a.href=href;a.download=name;a.click()}
+
+// ── TABS ──
+function switchTab(name,btn){
+  document.getElementById('tab-scout').style.display=name==='scout'?'':'none';
+  document.getElementById('tab-data').style.display=name==='data'?'':'none';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  if(name==='data')renderTable();
+}
+
+// ── TOAST ──
+function showToast(msg,err){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.borderColor=err?'var(--red)':'var(--green)';
+  t.style.color=err?'var(--red)':'var(--green)';
+  t.style.boxShadow=err?'var(--glow-red)':'var(--glow-green)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── INIT ──
+updatePreview();
+updateEntryCount();
+</script>
+</body>
+</html>
