@@ -600,6 +600,8 @@ hr { border: none; border-top: 1px solid #2a2a2a; margin: 10px 0; }
     <input type="text" id="searchBox" placeholder="Search team, match, notes…" oninput="renderTable()">
     <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
     <button class="btn-sm" onclick="exportJSON()">Export JSON</button>
+    <input type="text" id="sheetsUrl" placeholder="Google Sheets webhook URL" style="flex:0 1 320px; padding:8px 10px; border-radius:4px; background:#111; border:1px solid #444; color:#ccc;" title="Paste your deployed Apps Script web app URL here">
+    <button class="btn-sm" onclick="pushToSheet()">Push to Sheet</button>
     <button class="btn-sm danger" onclick="clearAll()">Clear All</button>
   </div>
 
@@ -881,6 +883,33 @@ function exportCSV() {
 function exportJSON() {
   if (!DB.length) { toast('No data to export', true); return; }
   dl('frc2026_scout.json', 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(DB, null, 2)));
+}
+
+// Push all saved entries to a Google Apps Script webhook (simple integration)
+async function pushToSheet() {
+  const url = (document.getElementById('sheetsUrl').value || '').trim();
+  if (!url) { toast('Paste your Sheets webhook URL first', true); return; }
+  try {
+    const btn = event && event.target;
+    if (btn) { btn.disabled = true; }
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries: DB })
+    });
+    const text = await resp.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch(e) { /* ignore */ }
+    if (!resp.ok) {
+      toast('Sheet push failed: ' + (json && json.message ? json.message : resp.statusText), true);
+    } else {
+      toast('Pushed ' + (DB.length) + ' entries to sheet');
+    }
+  } catch (err) {
+    toast('Error pushing to sheet: ' + err.message, true);
+  } finally {
+    if (event && event.target) event.target.disabled = false;
+  }
 }
 
 function dl(name, href) {
