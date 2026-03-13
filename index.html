@@ -507,15 +507,16 @@ hr { border: none; border-top: 1px solid #2a2a2a; margin: 10px 0; }
           <button class="tgl" onclick="this.classList.toggle('on')">Ground</button>
           <button class="tgl" onclick="this.classList.toggle('on')">Depot</button>
           <button class="tgl" onclick="this.classList.toggle('on')">Human Player</button>
+          <button class="tgl" id="fl-trench" onclick="this.classList.toggle('on')">Trench</button>
         </div>
       </div>
 
       <div>
         <label style="margin-bottom:6px">Flags</label>
-        <div class="toggles">
+          <div class="toggles">
           <button class="tgl" id="fl-defense" onclick="this.classList.toggle('on')">Played Defense</button>
           <button class="tgl" id="fl-bump" onclick="this.classList.toggle('on')">Crossed BUMP</button>
-          <button class="tgl" id="fl-disabled" onclick="this.classList.toggle('on red')" onclick="this.classList.toggle('on')">Got Disabled</button>
+          <button class="tgl" id="fl-disabled" onclick="this.classList.toggle('on'); this.classList.toggle('red')">Got Disabled</button>
         </div>
       </div>
     </div>
@@ -764,6 +765,7 @@ function saveEntry() {
     autoFuel: af, autoMissed: get('autoMissed'),
     autoTower, leftLine: document.getElementById('fl-leftLine').classList.contains('on'),
     preload: document.getElementById('fl-preload').classList.contains('on'),
+    trench: document.getElementById('fl-trench') ? document.getElementById('fl-trench').classList.contains('on') : false,
     teleFuel: tf, teleMissed: get('teleMissed'),
     pickups,
     defense: document.getElementById('fl-defense').classList.contains('on'),
@@ -887,7 +889,7 @@ function clearAll() {
 // ─── EXPORT ───────────────────────────────────────────
 function exportCSV() {
   if (!DB.length) { toast('No data to export', true); return; }
-  const cols = ['team','match','alliance','scout','autoFuel','autoMissed','autoTower','leftLine','preload','teleFuel','teleMissed','pickups','defense','crossedBump','disabled','climb','fell','failedClimb','parked','foul','driver','reliability','accuracy','estPts','notes'];
+  const cols = ['team','match','alliance','scout','autoFuel','autoMissed','autoTower','leftLine','preload','trench','teleFuel','teleMissed','pickups','defense','crossedBump','disabled','climb','fell','failedClimb','parked','foul','driver','reliability','accuracy','estPts','notes'];
   const lines = [cols.join(',')];
   DB.forEach(e => {
     lines.push(cols.map(c => {
