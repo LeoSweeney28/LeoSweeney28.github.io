@@ -507,7 +507,6 @@ hr { border: none; border-top: 1px solid #2a2a2a; margin: 10px 0; }
           <button class="tgl" onclick="this.classList.toggle('on')">Ground</button>
           <button class="tgl" onclick="this.classList.toggle('on')">Depot</button>
           <button class="tgl" onclick="this.classList.toggle('on')">Human Player</button>
-          <button class="tgl" id="fl-trench" onclick="this.classList.toggle('on')">Trench</button>
         </div>
       </div>
 
@@ -516,6 +515,7 @@ hr { border: none; border-top: 1px solid #2a2a2a; margin: 10px 0; }
           <div class="toggles">
           <button class="tgl" id="fl-defense" onclick="this.classList.toggle('on')">Played Defense</button>
           <button class="tgl" id="fl-bump" onclick="this.classList.toggle('on')">Crossed BUMP</button>
+          <button class="tgl" id="fl-trench" onclick="this.classList.toggle('on')">Trench</button>
           <button class="tgl" id="fl-disabled" onclick="this.classList.toggle('on'); this.classList.toggle('red')">Got Disabled</button>
         </div>
       </div>
@@ -565,41 +565,11 @@ hr { border: none; border-top: 1px solid #2a2a2a; margin: 10px 0; }
   <div class="section">
     <div class="section-title">Assessment</div>
     <div class="card">
-      <div class="row cols-2" style="margin-bottom:10px">
-        <div>
-          <label style="margin-bottom:6px">Driver Skill</label>
-          <div class="stars" id="stars-driver">
-            <span class="star" onclick="setStar('driver',1)">★</span>
-            <span class="star" onclick="setStar('driver',2)">★</span>
-            <span class="star" onclick="setStar('driver',3)">★</span>
-            <span class="star" onclick="setStar('driver',4)">★</span>
-            <span class="star" onclick="setStar('driver',5)">★</span>
-          </div>
-        </div>
-        <div>
-          <label style="margin-bottom:6px">Robot Reliability</label>
-          <div class="stars" id="stars-reliability">
-            <span class="star" onclick="setStar('reliability',1)">★</span>
-            <span class="star" onclick="setStar('reliability',2)">★</span>
-            <span class="star" onclick="setStar('reliability',3)">★</span>
-            <span class="star" onclick="setStar('reliability',4)">★</span>
-            <span class="star" onclick="setStar('reliability',5)">★</span>
-          </div>
-        </div>
-      </div>
+      
 
       <hr>
 
-      <div style="margin-bottom:10px">
-        <label style="margin-bottom:6px">Fouls / Cards</label>
-        <div class="toggles" id="foulGrp">
-          <button class="tgl on" data-v="none" onclick="pickOne('foulGrp',this)">None</button>
-          <button class="tgl" data-v="minor" onclick="pickOne('foulGrp',this)">Minor Foul</button>
-          <button class="tgl" data-v="major" onclick="pickOne('foulGrp',this)">Major Foul</button>
-          <button class="tgl" data-v="yellow" onclick="pickOne('foulGrp',this)">Yellow Card</button>
-          <button class="tgl" data-v="red" onclick="pickOne('foulGrp',this)">Red Card</button>
-        </div>
-      </div>
+      
 
       <div class="row cols-1">
         <div><label>Notes</label><textarea id="notes" placeholder="Strengths, weaknesses, strategy, mechanical issues…"></textarea></div>
@@ -793,8 +763,13 @@ function clearForm() {
   // reset single-select groups
   document.querySelectorAll('#autoTowerGrp .tgl').forEach(b => b.classList.remove('on'));
   document.querySelector('#autoTowerGrp .tgl[data-v="0"]').classList.add('on');
-  document.querySelectorAll('#foulGrp .tgl').forEach(b => b.classList.remove('on'));
-  document.querySelector('#foulGrp .tgl[data-v="none"]').classList.add('on');
+  // reset foul group if present
+  const _foulGrp = document.querySelector('#foulGrp');
+  if (_foulGrp) {
+    _foulGrp.querySelectorAll('.tgl').forEach(b => b.classList.remove('on'));
+    const _none = _foulGrp.querySelector('.tgl[data-v="none"]');
+    if (_none) _none.classList.add('on');
+  }
   document.querySelectorAll('#climbGrp .climb-opt').forEach(o => o.classList.remove('sel'));
   document.querySelector('#climbGrp .climb-opt[data-v="none"]').classList.add('sel');
 
