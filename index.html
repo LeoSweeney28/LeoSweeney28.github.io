@@ -600,8 +600,10 @@ hr { border: none; border-top: 1px solid #2a2a2a; margin: 10px 0; }
     <input type="text" id="searchBox" placeholder="Search team, match, notes…" oninput="renderTable()">
     <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
     <button class="btn-sm" onclick="exportJSON()">Export JSON</button>
-    <input type="text" id="sheetsUrl" placeholder="Google Sheets webhook URL" style="flex:0 1 320px; padding:8px 10px; border-radius:4px; background:#111; border:1px solid #444; color:#ccc;" title="Paste your deployed Apps Script web app URL here">
-    <button class="btn-sm" onclick="pushToSheet()">Push to Sheet</button>
+  <input type="text" id="sheetsUrl" placeholder="Google Sheets webhook URL" style="flex:0 1 300px; padding:8px 10px; border-radius:4px; background:#111; border:1px solid #444; color:#ccc;" title="Paste your deployed Apps Script web app URL here">
+  <input type="text" id="sheetsToken" placeholder="Optional Sheets token" style="flex:0 1 180px; padding:8px 10px; border-radius:4px; background:#111; border:1px solid #444; color:#ccc;" title="Optional secret token to include with requests">
+  <button class="btn-sm" onclick="pushToSheet(false,this)">Push all</button>
+  <button class="btn-sm" onclick="pushToSheet(true,this)">Push latest</button>
     <button class="btn-sm danger" onclick="clearAll()">Clear All</button>
   </div>
 
@@ -886,29 +888,49 @@ function exportJSON() {
 }
 
 // Push all saved entries to a Google Apps Script webhook (simple integration)
-async function pushToSheet() {
+// Push to Google Sheets webhook. Call with latestOnly=true to push only newest entry.
+async function pushToSheet(latestOnly = false, btnElement = null) {
   const url = (document.getElementById('sheetsUrl').value || '').trim();
+  const token = (document.getElementById('sheetsToken').value || '').trim();
   if (!url) { toast('Paste your Sheets webhook URL first', true); return; }
+  if (!DB || !Array.isArray(DB)) { toast('No data to push', true); return; }
+
+  // determine payload
+  let payload = {};
+  if (latestOnly) {
+    if (!DB.length) { toast('No entries to push', true); return; }
+    // pick newest by id (safe if IDs are timestamps)
+    const latest = DB.reduce((a, b) => (a.id || 0) > (b.id || 0) ? a : b, DB[0]);
+    payload.entry = latest;
+  } else {
+    payload.entries = DB;
+  }
+  if (token) payload.token = token;
+
   try {
-    const btn = event && event.target;
-    if (btn) { btn.disabled = true; }
+    if (btnElement) btnElement.disabled = true;
     const resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ entries: DB })
+      body: JSON.stringify(payload)
     });
+
     const text = await resp.text();
     let json = null;
-    try { json = JSON.parse(text); } catch(e) { /* ignore */ }
+    try { json = JSON.parse(text); } catch (e) { json = null; }
+
     if (!resp.ok) {
-      toast('Sheet push failed: ' + (json && json.message ? json.message : resp.statusText), true);
+      const msg = (json && (json.message || json.error)) || resp.statusText || 'Unknown error';
+      toast('Sheet push failed: ' + msg, true);
     } else {
-      toast('Pushed ' + (DB.length) + ' entries to sheet');
+      const count = (json && (json.count || json.added || json.countAdded)) || (latestOnly ? 1 : (payload.entries ? payload.entries.length : 1));
+      toast('Pushed ' + count + ' entries to sheet');
     }
   } catch (err) {
-    toast('Error pushing to sheet: ' + err.message, true);
+    toast('Error pushing to sheet: ' + (err && err.message ? err.message : err), true);
+    console.error('pushToSheet error', err);
   } finally {
-    if (event && event.target) event.target.disabled = false;
+    if (btnElement) btnElement.disabled = false;
   }
 }
 
