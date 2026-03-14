@@ -907,13 +907,26 @@ async function pushToSheet(latestOnly = false, btnElement = null) {
   }
   if (token) payload.token = token;
 
-  try {
+    try {
     if (btnElement) btnElement.disabled = true;
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    // Try to POST without an explicit Content-Type header first to avoid
+    // triggering a CORS preflight in some Apps Script deployments. If that
+    // fails, fall back to sending application/json explicitly.
+    let resp;
+    try {
+      resp = await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    } catch (firstErr) {
+      // second attempt with Content-Type (some endpoints expect it)
+      console.warn('pushToSheet: first fetch attempt failed, retrying with Content-Type header', firstErr);
+      resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
 
     const text = await resp.text();
     let json = null;
@@ -927,7 +940,10 @@ async function pushToSheet(latestOnly = false, btnElement = null) {
       toast('Pushed ' + count + ' entries to sheet');
     }
   } catch (err) {
-    toast('Error pushing to sheet: ' + (err && err.message ? err.message : err), true);
+    const emsg = (err && err.message) ? err.message : String(err);
+    const hint = emsg.toLowerCase().includes('failed to fetch') ?
+      ' — check webhook URL, network, and CORS. Ensure the Apps Script Web App is deployed (use the Web app URL) and accessible ("Anyone, even anonymous"), or try the optional token approach.' : '';
+    toast('Error pushing to sheet: ' + emsg + hint, true);
     console.error('pushToSheet error', err);
   } finally {
     if (btnElement) btnElement.disabled = false;
