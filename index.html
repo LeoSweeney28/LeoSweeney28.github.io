@@ -359,7 +359,7 @@ tr:hover td { background: #1e1e1e; }
 #toast.err  { border-color: #e74c3c; color: #e74c3c; }
 
 /* ── DIVIDER ── */
-hr { border: none; border-top: 1px solid #333; margin: 10px 0; }
+hr { border: none; border-top: 1px solid #414141; margin: 10px 0; }
 
 @media (max-width: 500px) {
   .row.cols-3 { grid-template-columns: 1fr 1fr; }
@@ -427,7 +427,7 @@ hr { border: none; border-top: 1px solid #333; margin: 10px 0; }
         </div>
         <!-- Auto Fuel Missed -->
         <div class="counter">
-          <div class="counter-label"><span>Fuel Missed</span><span class="pts">accuracy</span></div>
+            <div class="counter-label"><span>Estimated Accuracy</span><span class="pts">Est. %</span></div>
           <div class="counter-main">
             <button class="c-btn minus" onpointerdown="hold('autoMissed',-1)" onpointerup="release()" onpointerleave="release()" oncontextmenu="return false">−</button>
             <input class="c-input" type="number" id="autoMissed" value="0" min="0" inputmode="numeric" oninput="clamp(this); updateSummary()">
@@ -455,7 +455,6 @@ hr { border: none; border-top: 1px solid #333; margin: 10px 0; }
       <div>
         <label style="margin-bottom:6px">Flags</label>
         <div class="toggles">
-          <button class="tgl" id="fl-leftLine" onclick="this.classList.toggle('on')">Left Start Line</button>
           <button class="tgl" id="fl-preload" onclick="this.classList.toggle('on')">Had Preload (8 fuel)</button>
         </div>
       </div>
@@ -484,7 +483,7 @@ hr { border: none; border-top: 1px solid #333; margin: 10px 0; }
         </div>
         <!-- Teleop Missed -->
         <div class="counter">
-          <div class="counter-label"><span>Fuel Missed / Inactive</span><span class="pts">accuracy</span></div>
+            <div class="counter-label"><span>Estimated Accuracy</span><span class="pts">Est. %</span></div>
           <div class="counter-main">
             <button class="c-btn minus" onpointerdown="hold('teleMissed',-1)" onpointerup="release()" onpointerleave="release()" oncontextmenu="return false">−</button>
             <input class="c-input" type="number" id="teleMissed" value="0" min="0" inputmode="numeric" oninput="clamp(this); updateSummary()">
@@ -600,7 +599,7 @@ hr { border: none; border-top: 1px solid #333; margin: 10px 0; }
     <input type="text" id="searchBox" placeholder="Search team, match, notes…" oninput="renderTable()">
     <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
     <button class="btn-sm" onclick="exportJSON()">Export JSON</button>
-  <input type="text" id="sheetsUrl" placeholder="Google Sheets webhook URL" style="flex:0 1 300px; padding:8px 10px; border-radius:4px; background:#111; border:1px solid #444; color:#ccc;" title="Paste your deployed Apps Script web app URL here">
+  <input type="text" id="sheetsUrl" value="https://script.google.com/macros/s/AKfycbypBnsIfUIw2eZMoyqvrpeT05W2rVt5xd-6QtLGKBKFqHA2dFVZdqtR2MuF2Aa7EkoN2w/exec" placeholder="Google Sheets webhook URL" style="flex:0 1 300px; padding:8px 10px; border-radius:4px; background:#111; border:1px solid #444; color:#ccc;" title="Paste your deployed Apps Script web app URL here">
   <input type="text" id="sheetsToken" placeholder="Optional Sheets token" style="flex:0 1 180px; padding:8px 10px; border-radius:4px; background:#111; border:1px solid #444; color:#ccc;" title="Optional secret token to include with requests">
   <button class="btn-sm" onclick="pushToSheet(false,this)">Push all</button>
   <button class="btn-sm" onclick="pushToSheet(true,this)">Push latest</button>
@@ -729,6 +728,8 @@ function saveEntry() {
   const climbPts = { none: 0, '1': 10, '2': 20, '3': 30 }[climb] || 0;
   const total_shots = af + get('autoMissed') + tf + get('teleMissed');
   const acc = total_shots > 0 ? Math.round((af + tf) / total_shots * 100) : null;
+  const _leftLineEl = document.getElementById('fl-leftLine');
+  const _leftLine = _leftLineEl ? _leftLineEl.classList.contains('on') : false;
 
   DB.push({
     id: Date.now(),
@@ -736,8 +737,8 @@ function saveEntry() {
     match: document.getElementById('matchNum').value.trim() || '?',
     alliance: document.getElementById('alliance').value,
     scout: document.getElementById('scoutName').value.trim(),
-    autoFuel: af, autoMissed: get('autoMissed'),
-    autoTower, leftLine: document.getElementById('fl-leftLine').classList.contains('on'),
+  autoFuel: af, autoMissed: get('autoMissed'),
+  autoTower, leftLine: _leftLine,
     preload: document.getElementById('fl-preload').classList.contains('on'),
     trench: document.getElementById('fl-trench') ? document.getElementById('fl-trench').classList.contains('on') : false,
     teleFuel: tf, teleMissed: get('teleMissed'),
@@ -975,6 +976,18 @@ function toast(msg, err) {
 }
 
 // ─── INIT ─────────────────────────────────────────────
+// Persisted Sheets webhook URL/token — use stored value if present, otherwise keep the default value set in the input
+try {
+  const sheetsUrlEl = document.getElementById('sheetsUrl');
+  const sheetsTokenEl = document.getElementById('sheetsToken');
+  const storedUrl = localStorage.getItem('frc26_sheets_url');
+  const storedToken = localStorage.getItem('frc26_sheets_token');
+  if (storedUrl && sheetsUrlEl) sheetsUrlEl.value = storedUrl;
+  if (storedToken && sheetsTokenEl) sheetsTokenEl.value = storedToken;
+  if (sheetsUrlEl) sheetsUrlEl.addEventListener('change', e => localStorage.setItem('frc26_sheets_url', (e.target.value || '').trim()));
+  if (sheetsTokenEl) sheetsTokenEl.addEventListener('change', e => localStorage.setItem('frc26_sheets_token', (e.target.value || '').trim()));
+} catch (err) { console.warn('Sheets persistence init error', err); }
+
 updateSummary();
 updateSavedCount();
 </script>
