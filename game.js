@@ -64,7 +64,15 @@ let boss = null;
 let bossActive = false;
 let bossPending = false;
 let bossTimer = 0;
+let bossPendingTimer = 0;
 const bossDuration = 10;
+const BOSS_PENDING_TIMEOUT = { easy: 6.5, normal: 8.0, hard: 9.5 };
+const OBSTACLE_MOUSE_SAFE_PADDING_MIN = 70;
+const OBSTACLE_MOUSE_SAFE_PADDING_MULT = 4;
+const MAX_OBSTACLE_PLACEMENT_TRIES = 12;
+const OBSTACLE_EDGE_PADDING = 40;
+const OBSTACLE_SPAWN_MARGIN = 60;
+const OBSTACLE_FALLBACK_OFFSET = 80;
 
 function lerp(a,b,t){ return a + (b-a) * t; }
 function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
@@ -215,6 +223,7 @@ function bossColor(stageValue){
 
 function beginStageEnd(){
   bossPending = true;
+  bossPendingTimer = BOSS_PENDING_TIMEOUT[difficulty] || BOSS_PENDING_TIMEOUT.normal;
   lastSpawn = 0;
   lastObstacleSpawn = 0;
   telegraphs.length = 0;
@@ -224,6 +233,7 @@ function beginStageEnd(){
 function startBossFight(){
   bossActive = true;
   bossPending = false;
+  bossPendingTimer = 0;
   telegraphs.length = 0;
   obstacleTelegraphs.length = 0;
   lastSpawn = 0;
@@ -606,18 +616,52 @@ function scheduleSpawn(){
   telegraphs.push(tele);
 }
 
+function clearActiveThreats(){
+  enemies.length = 0;
+  bullets.length = 0;
+  telegraphs.length = 0;
+}
+
 function scheduleObstacle(){
   if(!settings.obstacleEnabled) return;
   const shape = chooseObstacleShape();
   const tele = { t: settings.obstacleTeleTime || 700, shape, reason: 'obstacle' };
-  tele.x = Math.max(40, Math.min(width-40, rand(60, width-60)));
-  tele.y = Math.max(40, Math.min(height-40, rand(60, height-60)));
   const deep = Math.max(0, stage - 1);
   const randomScale = rand(0.75, 1.55) + deep * rand(0.03, 0.08);
-  tele.w = shape === 'rect-h' ? rand(90, 250) * randomScale + deep * rand(10, 24) : shape === 'bar' ? rand(200, 380) * randomScale : rand(44, 130) * randomScale;
-  tele.h = shape === 'rect-v' ? rand(90, 250) * randomScale + deep * rand(10, 24) : shape === 'bar' ? rand(16, 34) * rand(0.8, 1.25) : rand(44, 130) * randomScale;
-  if(shape === 'rect-v') tele.w = rand(22, 58) * rand(0.9, 1.35);
+  const teleW = shape === 'rect-h' ? rand(90, 250) * randomScale + deep * rand(10, 24) : shape === 'bar' ? rand(200, 380) * randomScale : rand(44, 130) * randomScale;
+  const teleH = shape === 'rect-v' ? rand(90, 250) * randomScale + deep * rand(10, 24) : shape === 'bar' ? rand(16, 34) * rand(0.8, 1.25) : rand(44, 130) * randomScale;
+  tele.w = shape === 'rect-v' ? rand(22, 58) * rand(0.9, 1.35) : teleW;
+  tele.h = teleH;
   if(shape === 'square') { tele.w = rand(48, 130) * randomScale; tele.h = tele.w; }
+  const mouseSpawnSafePadding = Math.max(OBSTACLE_MOUSE_SAFE_PADDING_MIN, player.r * OBSTACLE_MOUSE_SAFE_PADDING_MULT);
+  let placed = false;
+  for(let tries = 0; tries < MAX_OBSTACLE_PLACEMENT_TRIES; tries++){
+    const candidateX = Math.max(OBSTACLE_EDGE_PADDING, Math.min(width - OBSTACLE_EDGE_PADDING, rand(OBSTACLE_SPAWN_MARGIN, width - OBSTACLE_SPAWN_MARGIN)));
+    const candidateY = Math.max(OBSTACLE_EDGE_PADDING, Math.min(height - OBSTACLE_EDGE_PADDING, rand(OBSTACLE_SPAWN_MARGIN, height - OBSTACLE_SPAWN_MARGIN)));
+    const nearMouseX = Math.abs(candidateX - mouse.x) < (tele.w * 0.5 + mouseSpawnSafePadding);
+    const nearMouseY = Math.abs(candidateY - mouse.y) < (tele.h * 0.5 + mouseSpawnSafePadding);
+    if(!(nearMouseX || nearMouseY)){
+      tele.x = candidateX;
+      tele.y = candidateY;
+      placed = true;
+      break;
+    }
+  }
+  if(!placed){
+    const anchors = [
+      { x: OBSTACLE_FALLBACK_OFFSET, y: OBSTACLE_FALLBACK_OFFSET },
+      { x: Math.max(OBSTACLE_EDGE_PADDING, width - OBSTACLE_FALLBACK_OFFSET), y: OBSTACLE_FALLBACK_OFFSET },
+      { x: OBSTACLE_FALLBACK_OFFSET, y: Math.max(OBSTACLE_EDGE_PADDING, height - OBSTACLE_FALLBACK_OFFSET) },
+      { x: Math.max(OBSTACLE_EDGE_PADDING, width - OBSTACLE_FALLBACK_OFFSET), y: Math.max(OBSTACLE_EDGE_PADDING, height - OBSTACLE_FALLBACK_OFFSET) }
+    ];
+    anchors.sort((a, b)=>{
+      const da = Math.hypot(a.x - mouse.x, a.y - mouse.y);
+      const db = Math.hypot(b.x - mouse.x, b.y - mouse.y);
+      return db - da;
+    });
+    tele.x = anchors[0].x;
+    tele.y = anchors[0].y;
+  }
   tele.color = randomObstacleTone(shape);
   tele.motion = chooseObstacleMotion(shape, stage);
   tele.vx = 0;
@@ -677,8 +721,8 @@ function update(dt){
   drawPlayerX = lerp(drawPlayerX, player.x, drawLerp);
   drawPlayerY = lerp(drawPlayerY, player.y, drawLerp);
   const speed = Math.hypot(player.vx, player.vy);
-  const targetAngle = Math.atan2(player.vy, player.vx) * 0.08; // subtle tilt magnitude
-  drawPlayerAngle = lerp(drawPlayerAngle, targetAngle, 0.16);
+  const targetAngle = Math.atan2(player.vy, player.vx) * 0.04; // reduced tilt magnitude to reduce wiggle
+  drawPlayerAngle = lerp(drawPlayerAngle, targetAngle, 0.12);
   const targetScale = 1 + Math.min(0.12, speed / 6000);
   drawPlayerScale = lerp(drawPlayerScale, targetScale, 0.16);
 
@@ -786,8 +830,14 @@ function update(dt){
     }
   }
 
-  if(bossPending && !bossActive && enemies.length === 0){
-    startBossFight();
+  if(bossPending && !bossActive){
+    bossPendingTimer -= dt;
+    if(enemies.length === 0){
+      startBossFight();
+    } else if(bossPendingTimer <= 0){
+      clearActiveThreats();
+      startBossFight();
+    }
   }
 
   updateBoss(dt);
@@ -1046,7 +1096,7 @@ function draw(){
   for(const o of obstacles){
     // smoother fade-in/out for obstacle appearance
     const teleSec = (settings.obstacleTeleTime || 360) / 1000;
-    const fadeDur = Math.max(0.6, teleSec);
+    const fadeDur = Math.max(1.2, teleSec * 1.35);
     const maxLife = o.maxLife || Math.max(1, settings.obstacleLifeBase || 1.6);
     const timeSinceSpawn = Math.max(0, maxLife - o.life);
     const inNorm = Math.min(1, Math.max(0, timeSinceSpawn / fadeDur));
@@ -1379,6 +1429,7 @@ function startGame(){
   boss = null;
   bossActive = false;
   bossPending = false;
+  bossPendingTimer = 0;
   bossTimer = 0;
   running = true;
   overlay.classList.add('hidden');
