@@ -640,7 +640,7 @@ function scheduleObstacle(){
     const candidateY = Math.max(OBSTACLE_EDGE_PADDING, Math.min(height - OBSTACLE_EDGE_PADDING, rand(OBSTACLE_SPAWN_MARGIN, height - OBSTACLE_SPAWN_MARGIN)));
     const nearMouseX = Math.abs(candidateX - mouse.x) < (tele.w * 0.5 + mouseSpawnSafePadding);
     const nearMouseY = Math.abs(candidateY - mouse.y) < (tele.h * 0.5 + mouseSpawnSafePadding);
-    if(!nearMouseX && !nearMouseY){
+    if(!(nearMouseX || nearMouseY)){
       tele.x = candidateX;
       tele.y = candidateY;
       placed = true;
