@@ -70,6 +70,9 @@ const BOSS_PENDING_TIMEOUT = { easy: 6.5, normal: 8.0, hard: 9.5 };
 const OBSTACLE_MOUSE_SAFE_PADDING_MIN = 70;
 const OBSTACLE_MOUSE_SAFE_PADDING_MULT = 4;
 const MAX_OBSTACLE_PLACEMENT_TRIES = 12;
+const OBSTACLE_EDGE_PADDING = 40;
+const OBSTACLE_SPAWN_MARGIN = 60;
+const OBSTACLE_FALLBACK_OFFSET = 80;
 
 function lerp(a,b,t){ return a + (b-a) * t; }
 function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
@@ -630,13 +633,13 @@ function scheduleObstacle(){
   tele.w = shape === 'rect-v' ? rand(22, 58) * rand(0.9, 1.35) : teleW;
   tele.h = teleH;
   if(shape === 'square') { tele.w = rand(48, 130) * randomScale; tele.h = tele.w; }
-  const mouseNoSpawnPadding = Math.max(OBSTACLE_MOUSE_SAFE_PADDING_MIN, player.r * OBSTACLE_MOUSE_SAFE_PADDING_MULT);
+  const mouseSpawnSafePadding = Math.max(OBSTACLE_MOUSE_SAFE_PADDING_MIN, player.r * OBSTACLE_MOUSE_SAFE_PADDING_MULT);
   let placed = false;
   for(let tries = 0; tries < MAX_OBSTACLE_PLACEMENT_TRIES; tries++){
-    const candidateX = Math.max(40, Math.min(width-40, rand(60, width-60)));
-    const candidateY = Math.max(40, Math.min(height-40, rand(60, height-60)));
-    const nearMouseX = Math.abs(candidateX - mouse.x) < (tele.w * 0.5 + mouseNoSpawnPadding);
-    const nearMouseY = Math.abs(candidateY - mouse.y) < (tele.h * 0.5 + mouseNoSpawnPadding);
+    const candidateX = Math.max(OBSTACLE_EDGE_PADDING, Math.min(width - OBSTACLE_EDGE_PADDING, rand(OBSTACLE_SPAWN_MARGIN, width - OBSTACLE_SPAWN_MARGIN)));
+    const candidateY = Math.max(OBSTACLE_EDGE_PADDING, Math.min(height - OBSTACLE_EDGE_PADDING, rand(OBSTACLE_SPAWN_MARGIN, height - OBSTACLE_SPAWN_MARGIN)));
+    const nearMouseX = Math.abs(candidateX - mouse.x) < (tele.w * 0.5 + mouseSpawnSafePadding);
+    const nearMouseY = Math.abs(candidateY - mouse.y) < (tele.h * 0.5 + mouseSpawnSafePadding);
     if(!nearMouseX || !nearMouseY){
       tele.x = candidateX;
       tele.y = candidateY;
@@ -645,8 +648,8 @@ function scheduleObstacle(){
     }
   }
   if(!placed){
-    tele.x = mouse.x < width * 0.5 ? Math.max(40, width - 80) : 80;
-    tele.y = mouse.y < height * 0.5 ? Math.max(40, height - 80) : 80;
+    tele.x = mouse.x < width * 0.5 ? Math.max(OBSTACLE_EDGE_PADDING, width - OBSTACLE_FALLBACK_OFFSET) : OBSTACLE_FALLBACK_OFFSET;
+    tele.y = mouse.y < height * 0.5 ? Math.max(OBSTACLE_EDGE_PADDING, height - OBSTACLE_FALLBACK_OFFSET) : OBSTACLE_FALLBACK_OFFSET;
   }
   tele.color = randomObstacleTone(shape);
   tele.motion = chooseObstacleMotion(shape, stage);
