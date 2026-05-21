@@ -613,6 +613,12 @@ function scheduleSpawn(){
   telegraphs.push(tele);
 }
 
+function clearActiveThreats(){
+  enemies.length = 0;
+  bullets.length = 0;
+  telegraphs.length = 0;
+}
+
 function scheduleObstacle(){
   if(!settings.obstacleEnabled) return;
   const shape = chooseObstacleShape();
@@ -624,14 +630,14 @@ function scheduleObstacle(){
   tele.w = shape === 'rect-v' ? rand(22, 58) * rand(0.9, 1.35) : teleW;
   tele.h = teleH;
   if(shape === 'square') { tele.w = rand(48, 130) * randomScale; tele.h = tele.w; }
-  const mouseSafePadding = Math.max(OBSTACLE_MOUSE_SAFE_PADDING_MIN, player.r * OBSTACLE_MOUSE_SAFE_PADDING_MULT);
+  const mouseNoSpawnPadding = Math.max(OBSTACLE_MOUSE_SAFE_PADDING_MIN, player.r * OBSTACLE_MOUSE_SAFE_PADDING_MULT);
   let placed = false;
   for(let tries = 0; tries < MAX_OBSTACLE_PLACEMENT_TRIES; tries++){
     const candidateX = Math.max(40, Math.min(width-40, rand(60, width-60)));
     const candidateY = Math.max(40, Math.min(height-40, rand(60, height-60)));
-    const nearMouseX = Math.abs(candidateX - mouse.x) < (tele.w * 0.5 + mouseSafePadding);
-    const nearMouseY = Math.abs(candidateY - mouse.y) < (tele.h * 0.5 + mouseSafePadding);
-    if(!(nearMouseX && nearMouseY)){
+    const nearMouseX = Math.abs(candidateX - mouse.x) < (tele.w * 0.5 + mouseNoSpawnPadding);
+    const nearMouseY = Math.abs(candidateY - mouse.y) < (tele.h * 0.5 + mouseNoSpawnPadding);
+    if(!nearMouseX || !nearMouseY){
       tele.x = candidateX;
       tele.y = candidateY;
       placed = true;
@@ -815,9 +821,7 @@ function update(dt){
     if(enemies.length === 0){
       startBossFight();
     } else if(bossPendingTimer <= 0){
-      enemies.length = 0;
-      bullets.length = 0;
-      telegraphs.length = 0;
+      clearActiveThreats();
       startBossFight();
     }
   }
