@@ -640,7 +640,7 @@ function scheduleObstacle(){
     const candidateY = Math.max(OBSTACLE_EDGE_PADDING, Math.min(height - OBSTACLE_EDGE_PADDING, rand(OBSTACLE_SPAWN_MARGIN, height - OBSTACLE_SPAWN_MARGIN)));
     const nearMouseX = Math.abs(candidateX - mouse.x) < (tele.w * 0.5 + mouseSpawnSafePadding);
     const nearMouseY = Math.abs(candidateY - mouse.y) < (tele.h * 0.5 + mouseSpawnSafePadding);
-    if(!nearMouseX || !nearMouseY){
+    if(!nearMouseX && !nearMouseY){
       tele.x = candidateX;
       tele.y = candidateY;
       placed = true;
@@ -648,8 +648,19 @@ function scheduleObstacle(){
     }
   }
   if(!placed){
-    tele.x = mouse.x < width * 0.5 ? Math.max(OBSTACLE_EDGE_PADDING, width - OBSTACLE_FALLBACK_OFFSET) : OBSTACLE_FALLBACK_OFFSET;
-    tele.y = mouse.y < height * 0.5 ? Math.max(OBSTACLE_EDGE_PADDING, height - OBSTACLE_FALLBACK_OFFSET) : OBSTACLE_FALLBACK_OFFSET;
+    const anchors = [
+      { x: OBSTACLE_FALLBACK_OFFSET, y: OBSTACLE_FALLBACK_OFFSET },
+      { x: Math.max(OBSTACLE_EDGE_PADDING, width - OBSTACLE_FALLBACK_OFFSET), y: OBSTACLE_FALLBACK_OFFSET },
+      { x: OBSTACLE_FALLBACK_OFFSET, y: Math.max(OBSTACLE_EDGE_PADDING, height - OBSTACLE_FALLBACK_OFFSET) },
+      { x: Math.max(OBSTACLE_EDGE_PADDING, width - OBSTACLE_FALLBACK_OFFSET), y: Math.max(OBSTACLE_EDGE_PADDING, height - OBSTACLE_FALLBACK_OFFSET) }
+    ];
+    anchors.sort((a, b)=>{
+      const da = Math.hypot(a.x - mouse.x, a.y - mouse.y);
+      const db = Math.hypot(b.x - mouse.x, b.y - mouse.y);
+      return db - da;
+    });
+    tele.x = anchors[0].x;
+    tele.y = anchors[0].y;
   }
   tele.color = randomObstacleTone(shape);
   tele.motion = chooseObstacleMotion(shape, stage);
