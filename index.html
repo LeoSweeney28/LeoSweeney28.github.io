@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mouse Dodge — Simple 2D Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="ui">
+    <h1>Mouse Dodge</h1>
+    <p class="hint">Move your mouse to control the blue circle. Avoid the red enemies. Click to start/restart.</p>
+    <div id="tip" class="tip small muted">Tip: static obstacles stay longer but are easier to avoid.</div>
+    <div id="score">Score: 0</div>
+    <div id="mult">Multiplier: x1</div>
+    <div id="time">Time: 0.0s</div>
+    <div id="boss-timer" class="hidden">Boss: 10.0s</div>
+    <div id="best">Best: 0</div>
+  </div>
+  <div id="difficulty-ui">
+    <div id="diff-label">Difficulty Stage: <span id="diff-stage">1</span></div>
+    <div id="diff-bar"><div id="diff-progress"></div></div>
+  </div>
+  <canvas id="game"></canvas>
+  <div id="start" class="overlay">
+    <div class="overlay-content menu">
+      <h2>Mouse Dodge</h2>
+      <p class="muted">Dodge enemies with your mouse. Survive as long as possible.</p>
+      <div class="difficulty-row">
+        <button class="diff-btn selected" data-diff="easy">Easy</button>
+        <button class="diff-btn" data-diff="normal">Normal</button>
+        <button class="diff-btn" data-diff="hard">Hard</button>
+      </div>
+      <div style="height:8px"></div>
+      <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
+        <button id="startBtn" class="primary">Start Game</button>
+        <button id="openSettingsStart" class="diff-btn">Settings</button>
+      </div>
+      
+    </div>
+  </div>
+
+  <div id="overlay" class="overlay hidden">
+    <div id="overlay-content" class="overlay-content">
+      <h2 id="overlay-title">Game Over</h2>
+      <p id="overlay-score">Score: 0</p>
+      <div style="height:8px"></div>
+      <div style="display:flex; gap:8px; justify-content:center;">
+        <button id="restart">Play Again</button>
+        <button id="openSettingsEnd" class="diff-btn">Settings</button>
+      </div>
+    </div>
+  </div>
+  <div id="settings" class="overlay hidden">
+    <div class="overlay-content settings-panel">
+      <h3>Settings</h3>
+      <label>Stage Duration (seconds)
+        <input id="setting-stage-duration" type="number" min="5" max="120" step="1" value="20">
+      </label>
+      <label>Multiplier Cap
+        <input id="setting-mult-cap" type="number" min="1" max="10" step="0.1" value="4">
+      </label>
+      <label>Base Spawn Interval (ms)
+        <input id="setting-spawn-base" type="number" min="200" max="3000" step="50" value="1100">
+      </label>
+      <div style="height:8px"></div>
+      <div style="display:flex; gap:8px; justify-content:center;">
+        <button id="applySettings" class="primary">Apply</button>
+        <button id="closeSettings" class="diff-btn">Close</button>
+      </div>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>

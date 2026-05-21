@@ -1,0 +1,65 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.hidden { display: none !important; }
+html,body { height: 100%; }
+body { font-family: system-ui, Arial, sans-serif; background: #0f1724; color: #e6eef8; overflow: hidden; }
+h1 { font-size: 20px; margin-bottom: 6px; }
+.hint { opacity: 0.8; font-size: 13px; margin-bottom: 8px; }
+#score, #best { font-weight: 700; margin-bottom: 4px; }
+canvas { display: block; width: 100vw; height: 100vh; cursor: none; }
+.overlay { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; z-index:30; background: linear-gradient(180deg, rgba(2,6,23,0.55), rgba(2,6,23,0.25)); backdrop-filter: blur(6px); }
+.overlay.hidden { display: none; }
+.overlay-content { background: linear-gradient(180deg,#071026,#081222); border: 1px solid rgba(255,255,255,0.06); padding: 14px 18px; border-radius: 12px; text-align:center; box-shadow: 0 6px 16px rgba(2,6,23,0.45); min-width: 260px; max-width: 420px; }
+.menu h2{ margin-bottom:6px; }
+.muted{ color: rgba(230,238,248,0.75); margin-bottom:8px; }
+.small{ font-size:12px; opacity:0.85 }
+.difficulty-row{ display:flex; gap:8px; justify-content:center; margin:8px 0; }
+.diff-btn{ padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.02); color: #e6eef8; cursor:pointer; }
+.diff-btn.selected{ background: linear-gradient(90deg,#2dd4bf,#60a5fa); color:#012; font-weight:700; box-shadow: none; }
+.primary{ padding:10px 14px; background: linear-gradient(90deg,#2563eb,#60a5fa); color:white; border: none; border-radius:10px; cursor:pointer; font-weight:800; box-shadow: none; transition: transform 120ms ease, filter 120ms ease; }
+.primary:hover{ transform: translateY(-1px); filter:brightness(1.03) }
+#restart { padding: 8px 12px; background: linear-gradient(90deg,#ef4444,#fb7185); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight:700; box-shadow: none; }
+#restart:hover { transform: translateY(-1px) }
+@media (max-width:600px){ h1{font-size:18px} }
+
+/* Compact HUD bar */
+#ui { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 40; display:flex; gap:8px; align-items:center; background: rgba(255,255,255,0.03); padding:6px 10px; border-radius:12px; border:1px solid rgba(255,255,255,0.04); box-shadow: none; }
+#ui .badge { background: transparent; padding:6px 10px; border-radius:8px; font-weight:700; font-size:13px; color: #e6eef8; }
+#ui .smallnote { font-weight:600; font-size:12px; color: rgba(230,238,248,0.8); }
+
+#score, #best{ background: transparent; padding:0; margin:0; font-size:15px }
+#mult, #time{ background: transparent; padding:0; margin:0; font-size:13px; color:#cfe9ff }
+
+/* tip box shown in HUD */
+#tip{ font-size:13px; padding:6px 10px; border-radius:8px; background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03); color: #dff3ff; max-width:360px; text-align:left }
+
+/* telegraph marker */
+.telegraph { position:absolute; pointer-events:none; z-index:25 }
+
+/* pause badge */
+.paused-badge{ position: absolute; left:50%; top:12px; transform:translateX(-50%); background: rgba(0,0,0,0.45); padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); font-weight:700 }
+
+/* difficulty UI */
+#difficulty-ui{ position: absolute; right: 12px; top: 10px; width: 220px; z-index:22; color:#cfe9ff; font-size:13px }
+#diff-label{ margin-bottom:6px; font-weight:700 }
+#diff-bar{ height:10px; background: rgba(255,255,255,0.04); border-radius:8px; overflow:hidden }
+#diff-progress{ height:100%; width:0%; background: linear-gradient(90deg,#f97316,#ef4444); transition: width 0.18s linear }
+
+/* enemy difficulty marker */
+/* small visual tweaks for canvas elements */
+.glow { filter: none; }
+
+/* settings panel */
+.settings-panel label{ display:block; margin:8px 0; text-align:left; font-size:13px }
+.settings-panel input{ width:100%; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); color:inherit }
+
+/* debug panel */
+.debug-panel{ position:absolute; left:12px; bottom:12px; z-index:45; background: rgba(2,6,23,0.82); border:1px solid rgba(255,255,255,0.09); color:#e6eef8; padding:10px 12px; border-radius:10px; font-size:12px; line-height:1.45; box-shadow:none; min-width:180px; pointer-events:none; }
+.debug-panel strong{ letter-spacing:0.04em; }
+
+/* compact UI tweak */
+#ui{ left:10px; top:8px; gap:4px }
+#ui h1{ font-size:16px }
+#score,#best,#mult,#time{ padding:5px 7px; font-size:13px }
+
+/* make overlays slightly smaller on mobile */
+@media (max-width:600px){ .overlay-content{ min-width:200px; padding:12px } }
