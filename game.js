@@ -76,6 +76,21 @@ const OBSTACLE_FALLBACK_OFFSET = 80;
 
 function lerp(a,b,t){ return a + (b-a) * t; }
 function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+// draw a rounded rectangle path on the provided context (polyfill for ctx.roundRect)
+function pathRoundRect(ctx, x, y, w, h, r){
+  const rad = Math.max(0, Math.min(r, Math.min(w/2, h/2)));
+  ctx.beginPath();
+  ctx.moveTo(x + rad, y);
+  ctx.lineTo(x + w - rad, y);
+  ctx.arcTo(x + w, y, x + w, y + rad, rad);
+  ctx.lineTo(x + w, y + h - rad);
+  ctx.arcTo(x + w, y + h, x + w - rad, y + h, rad);
+  ctx.lineTo(x + rad, y + h);
+  ctx.arcTo(x, y + h, x, y + h - rad, rad);
+  ctx.lineTo(x, y + rad);
+  ctx.arcTo(x, y, x + rad, y, rad);
+  ctx.closePath();
+}
 // obstacles (telegraphed hazards that kill on touch)
 let obstacles = [];
 let obstacleTelegraphs = [];
@@ -228,6 +243,12 @@ function beginStageEnd(){
   lastObstacleSpawn = 0;
   telegraphs.length = 0;
   obstacleTelegraphs.length = 0;
+  // clear active threats so the boss has a clean arena to spawn into
+  enemies.length = 0;
+  bullets.length = 0;
+  obstacles.length = 0;
+  // start the boss immediately (ensures boss appears even if earlier enemies would block spawn)
+  startBossFight();
 }
 
 function startBossFight(){
@@ -417,11 +438,12 @@ function spawnEnemy(reason='spawn'){
   const side = Math.floor(rand(0,4));
   let x,y,dx,dy;
   const baseSpeed = rand(70,140) * speedMultiplier; // px/sec
-  const spawnSize = rand(8,30);
+    const spawnSize = rand(8, 30);
   if(side===0){ x = -spawnSize; y = rand(0,height); dx = rand(0.2,1); dy = rand(-0.5,0.5);} // left
   else if(side===1){ x = width+spawnSize; y = rand(0,height); dx = rand(-1,-0.2); dy = rand(-0.5,0.5);} // right
   else if(side===2){ x = rand(0,width); y = -spawnSize; dx = rand(-0.5,0.5); dy = rand(0.2,1);} // top
   else { x = rand(0,width); y = height+spawnSize; dx = rand(-0.5,0.5); dy = rand(-1,-0.2);} // bottom
+    
   // gently bias the initial path toward the current cursor position
   const aimX = mouse.x - x;
   const aimY = mouse.y - y;
@@ -440,6 +462,7 @@ function spawnEnemy(reason='spawn'){
   if(difficulty === 'easy'){
     if(roll < 0.10 + stageBoost * 0.08) type = 'homing';
     else if(roll < 0.20 + stageBoost * 0.08) type = 'zigzag';
+    else if(roll < 0.25 + stageBoost * 0.04) type = 'phaser';
     else if(stage >= 3 && roll > 0.94) type = 'fast';
     else type = 'straight';
   } else if(difficulty === 'normal'){
@@ -452,6 +475,7 @@ function spawnEnemy(reason='spawn'){
   } else { // hard
     if(roll < 0.34 + stageBoost * 0.14) type = 'homing';
     else if(roll < 0.40 + stageBoost * 0.08) type = 'zigzag';
+    else if(roll < 0.44 + stageBoost * 0.06) type = 'phaser';
     else if(roll < 0.64 + stageBoost * 0.10) type = 'fast';
     else if(roll < 0.78 + stageBoost * 0.06) type = 'big';
     else if(stage >= 3 && roll > 0.82) type = 'shooter';
@@ -461,11 +485,19 @@ function spawnEnemy(reason='spawn'){
 
   const size = randomEnemySize(type, stage);
   let enemy = { x, y, dx, dy, r: size, color: '#ef4444', type, speed: baseSpeed, shape: chooseEnemyShape(type, stage), hp: 1, reason, phase: 1, phaseTimer: 0 };
+  // short safety window after spawn to avoid unfair immediate collisions
+  enemy.safeTime = 0.45;
   enemy.speed *= 1 + stageBoost * 0.35;
   if(type === 'straight') { enemy.color = '#ef4444'; }
   if(type === 'fast') { enemy.speed *= 1.6; enemy.r = Math.max(6, size * 0.75); enemy.color = '#fb7185'; enemy.shape = 'triangle'; }
   if(type === 'big') { enemy.speed *= 0.6; enemy.r = Math.max(22, size * 1.6); enemy.color = '#f97316'; enemy.shape = 'hex'; }
-  if(type === 'zigzag') { enemy.amp = rand(12,36); enemy.phase = rand(0,Math.PI*2); enemy.freq = rand(3,6); enemy.color = '#f43f5e'; }
+  if(type === 'zigzag') { 
+    // stronger zigzag: larger amplitude and slightly higher frequency
+    enemy.amp = rand(20,58) + stage * 3;
+    enemy.phase = rand(0,Math.PI*2);
+    enemy.freq = rand(4,8);
+    enemy.color = '#f43f5e';
+  }
   if(type === 'homing') { enemy.turnRate = rand(0.86,1.28) * (1 + stageBoost * 0.65); enemy.homingTime = Math.max(0.38, 1.0 + Math.random()*0.7 - stageBoost * 0.55); enemy.color = '#ef4444'; }
   if(type === 'shooter') { enemy.shootTimer = rand(0.6,1.4); enemy.shootInterval = Math.max(0.32, 1.0 - stageBoost * 0.5); enemy.shotsFired = 0; enemy.color = '#7c3aed'; enemy.shape = 'diamond'; }
   if(type === 'charger') {
@@ -489,6 +521,15 @@ function spawnEnemy(reason='spawn'){
     enemy.shape = 'hex';
   }
   if(type === 'splitter') { enemy.phase = 1; enemy.phaseTimer = 0; enemy.color = '#ff7aa2'; }
+  if(type === 'phaser'){
+    // phaser: toggles visibility; only dangerous when visible
+    enemy.visible = false;
+    enemy.phaseTimer = 0;
+    enemy.visibleDuration = 0.9 + Math.random() * 0.6;
+    enemy.invisibleDuration = 0.9 + Math.random() * 0.9;
+    enemy.color = '#9f7aea';
+    enemy.shape = 'circle';
+  }
   enemies.push(enemy);
 }
 
@@ -510,11 +551,17 @@ function spawnDebugEnemy(type='straight', count=1){
     const baseSpeed = rand(70,140) * speedMultiplier;
     const size = randomEnemySize(type, stage);
     let enemy = { x, y, dx, dy, r: size, color: '#ef4444', type, speed: baseSpeed, shape: chooseEnemyShape(type, stage), hp: 1, reason: 'debug', phase: 1, phaseTimer: 0 };
+    enemy.safeTime = 0.45;
     enemy.speed *= 1 + stageBoost * 0.35;
     if(type === 'straight') { enemy.color = '#ef4444'; }
     if(type === 'fast') { enemy.speed *= 1.6; enemy.r = Math.max(6, size * 0.75); enemy.color = '#fb7185'; enemy.shape = 'triangle'; }
     if(type === 'big') { enemy.speed *= 0.6; enemy.r = Math.max(22, size * 1.6); enemy.color = '#f97316'; enemy.shape = 'hex'; }
-    if(type === 'zigzag') { enemy.amp = rand(12,36); enemy.phase = rand(0,Math.PI*2); enemy.freq = rand(3,6); enemy.color = '#f43f5e'; }
+    if(type === 'zigzag') { 
+      enemy.amp = rand(20,58) + stage * 3;
+      enemy.phase = rand(0,Math.PI*2);
+      enemy.freq = rand(4,8);
+      enemy.color = '#f43f5e';
+    }
     if(type === 'homing') { enemy.turnRate = rand(0.86,1.28) * (1 + stageBoost * 0.65); enemy.homingTime = Math.max(0.38, 1.0 + Math.random()*0.7 - stageBoost * 0.55); enemy.color = '#ef4444'; }
     if(type === 'shooter') { enemy.shootTimer = rand(0.6,1.4); enemy.shootInterval = Math.max(0.32, 1.0 - stageBoost * 0.5); enemy.shotsFired = 0; enemy.color = '#7c3aed'; enemy.shape = 'diamond'; }
     if(type === 'dasher') { enemy.warnTimer = 0.6 + Math.random()*0.8; enemy.warnDuration = Math.max(0.18, enemy.warnTimer * Math.max(0.38, 1 - (stage-1)*0.10)); enemy.dashSpeed = enemy.speed * (2.5 + stage*0.35); enemy.color = '#06b6d4'; }
@@ -593,6 +640,7 @@ document.addEventListener('keydown', e=>{
   else if(e.key === '7'){ e.preventDefault(); spawnDebugEnemy('shooter', count); }
   else if(e.key === '8'){ e.preventDefault(); spawnDebugEnemy('splitter', count); }
   else if(e.key === '9'){ e.preventDefault(); spawnDebugEnemy('dasher', count); }
+  else if(e.key === '0'){ e.preventDefault(); spawnDebugEnemy('phaser', count); }
   else if(e.key === 'x' || e.key === 'X'){ e.preventDefault(); enemies.length = 0; }
 });
 
@@ -730,6 +778,8 @@ function update(dt){
   for(let i=enemies.length-1;i>=0;i--){
     const e = enemies[i];
     e.phaseTimer += dt;
+    // decrement any short spawn safety window so newly spawned enemies aren't instantly lethal
+    if(e.safeTime && e.safeTime > 0){ e.safeTime = Math.max(0, e.safeTime - dt); }
     if(e.type === 'homing' && e.phase === 1 && e.life != null && e.life >= e.homingTime * 0.75){ applyEnemyPhase(e); }
     if(e.type === 'shooter' && e.phase === 1 && (e.shotsFired || 0) >= 2){ applyEnemyPhase(e); }
     if(e.type === 'big' && e.phase === 1 && e.phaseTimer > 2.2){ applyEnemyPhase(e); }
@@ -752,11 +802,13 @@ function update(dt){
       e.x += e.dx * e.speed * dt;
       e.y += e.dy * e.speed * dt;
     } else if(e.type === 'zigzag'){
-      // base movement then add perpendicular sinus wave
+      // base movement then add a stronger perpendicular sinus wave for pronounced zigzag
       const perpX = -e.dy, perpY = e.dx; // perpendicular
       e.phase += e.freq * dt;
-      e.x += e.dx * e.speed * dt + perpX * Math.sin(e.phase) * (e.amp/20);
-      e.y += e.dy * e.speed * dt + perpY * Math.sin(e.phase) * (e.amp/20);
+      const stageBoost = 1 + Math.min(1, (stage - 1) * 0.08);
+      const ampMultiplier = (e.amp || 28) / 12; // larger base multiplier
+      e.x += e.dx * e.speed * dt + perpX * Math.sin(e.phase) * ampMultiplier * stageBoost;
+      e.y += e.dy * e.speed * dt + perpY * Math.sin(e.phase) * ampMultiplier * stageBoost;
     } else if(e.type === 'shooter'){
       // move normally but periodically shoot toward player (predictive bursts)
       e.x += e.dx * e.speed * dt;
@@ -817,6 +869,45 @@ function update(dt){
       e.x += e.dx * e.speed * dt;
       e.y += e.dy * e.speed * dt;
     }
+    // dasher behavior: warned enemy that performs a short fast dash after warnTimer elapses
+    if(e.type === 'dasher'){
+      e.life = (e.life||0) + dt;
+      if(e.warnTimer > 0){
+        e.warnTimer -= dt;
+        e.x += e.dx * (e.speed * 0.12) * dt;
+        e.y += e.dy * (e.speed * 0.12) * dt;
+      } else {
+        if(!e.dashing){
+          e.dashing = true;
+          e.dashTime = 0;
+          e.dashDuration = Math.max(0.16, 0.22 + Math.random() * 0.12);
+          e.dashSpeed = e.dashSpeed || e.speed * (2.5 + stage * 0.35);
+        }
+        e.x += (e.dx || 0) * e.dashSpeed * dt;
+        e.y += (e.dy || 0) * e.dashSpeed * dt;
+        if(e.dashing){
+          e.dashTime += dt;
+          if(e.dashTime >= e.dashDuration){
+            e.dashing = false;
+            e.dashTime = 0;
+            e.speed *= 0.78;
+            e.warnTimer = 0.6 + Math.random() * 0.4;
+          }
+        }
+      }
+    }
+    // phaser (toggle visibility periodically)
+    if(e.type === 'phaser'){
+      if(e.visible){
+        if(e.phaseTimer >= (e.visibleDuration || 0.9)) { e.visible = false; e.phaseTimer = 0; }
+      } else {
+        if(e.phaseTimer >= (e.invisibleDuration || 1.0)) { e.visible = true; e.phaseTimer = 0; }
+      }
+      // subtle float so phasers feel alive
+      const wob = Math.sin((Date.now() / 280) + (e.phaseTimer * 6)) * (e.r * 0.04);
+      e.x += Math.cos(e.phaseTimer * 1.3) * wob * dt * 60;
+      e.y += Math.sin(e.phaseTimer * 1.1) * wob * dt * 60;
+    }
     // remove if far outside
     if(e.x < -120 || e.x > width+120 || e.y < -120 || e.y > height+120){
       // create a small particle burst when enemy exits
@@ -850,6 +941,10 @@ function update(dt){
 
   // collision
   for(const e of enemies){
+    // skip collision while enemy is in its short spawn-safe period
+    if(e.safeTime && e.safeTime > 0) continue;
+    // phasers are only dangerous when visible
+    if(e.type === 'phaser' && !e.visible) continue;
     if(squareCircleHit(player.x, player.y, player.r, e.x, e.y, e.r - 2)){ // collision
       // collision particle burst
       spawnParticles(player.x, player.y, 28, '#fff');
@@ -865,7 +960,16 @@ function update(dt){
   }
 
   // obstacle collisions (instant death)
+  // obstacle collisions (instant death) — ignore collisions during the spawn / fade-in period
   for(const o of obstacles){
+    // compute the fade-in duration used when drawing the obstacle so we can match the visual
+    const teleSec = (settings.obstacleTeleTime || 360) / 1000;
+    const fadeDur = Math.max(0.6, teleSec);
+    const maxLife = o.maxLife || Math.max(1, settings.obstacleLifeBase || 1.6);
+    const timeSinceSpawn = Math.max(0, maxLife - o.life);
+    // while the obstacle is still fading in, treat it as non-lethal
+    if(timeSinceSpawn < fadeDur) continue;
+
     const halfW = (o.w || o.r*2) * 0.5;
     const halfH = (o.h || o.r*2) * 0.5;
     const rectHit = Math.abs(player.x - o.x) < halfW + player.r && Math.abs(player.y - o.y) < halfH + player.r;
@@ -902,6 +1006,8 @@ function update(dt){
       else { if(roll<0.42) type='homing'; else if(roll<0.58) type='zigzag'; else if(roll<0.76) type='fast'; else if(roll<0.86) type='big'; else if(stage >= 2 && roll > 0.78) type='charger'; else if(stage >= 2) type='shooter'; }
       const teleSize = randomEnemySize(type, stage);
       const enemy = { x,y,dx,dy,r:teleSize,color:'#ef4444',type,speed:baseSpeed, life:0, shape: chooseEnemyShape(type, stage), reason: 'telegraph' };
+      // give telegraphed spawns a short safe window so they don't pop on top of the player
+      enemy.safeTime = 0.45;
       // linear scaling: make enemies stronger as stage/time increases
       const scaleFactor = 1 + (stage-1)*0.09 + Math.min(1, elapsed/40) * 0.30;
       enemy.speed *= scaleFactor;
@@ -909,11 +1015,12 @@ function update(dt){
       if(stage >= 2 && Math.random() < 0.18) { if(type === 'straight') type = 'shooter'; }
       if(stage >= 2 && Math.random() < 0.12) { type = 'splitter'; }
       if(stage >= 1 && Math.random() < 0.08) { type = 'dasher'; }
+      else if(stage >= 1 && Math.random() < 0.06) { type = 'phaser'; }
       if(stage >= 3 && Math.random() < 0.10) { type = 'charger'; }
       if(type==='homing'){ enemy.turnRate = rand(0.78,1.22) * (1 + (stage-1)*0.08); enemy.homingTime = Math.max(0.45, 1.0 + Math.random()*0.9 - (stage-1)*0.08); }
       if(type==='shooter'){ enemy.shootTimer = rand(0.35,1.1); enemy.shootInterval = Math.max(0.28, 0.86 - Math.min(0.4, stage*0.05)); enemy.color='#7c3aed'; }
       if(type==='dasher'){ enemy.warnTimer = 0.6 + Math.random()*0.8; enemy.warnDuration = Math.max(0.18, enemy.warnTimer * Math.max(0.38, 1 - (stage-1)*0.10)); enemy.dashSpeed = enemy.speed * (2.5 + stage*0.35); enemy.color = '#06b6d4'; }
-      if(type==='zigzag'){ enemy.amp=rand(14,36); enemy.phase=rand(0,Math.PI*2); enemy.freq=rand(3,6); enemy.shape = Math.random() < 0.5 ? 'square' : 'diamond'; }
+      if(type==='zigzag'){ enemy.amp = rand(20,64) + stage * 4; enemy.phase = rand(0,Math.PI*2); enemy.freq = rand(4,8); enemy.shape = Math.random() < 0.5 ? 'square' : 'diamond'; }
       if(type==='fast'){ enemy.speed*=1.6; enemy.r=Math.max(6,teleSize*0.75); enemy.color='#fb7185'; enemy.shape = 'triangle'; }
       if(type==='big'){ enemy.speed*=0.6; enemy.r=Math.max(22,teleSize*1.6); enemy.color='#f97316'; enemy.shape = 'hex'; }
       if(type==='charger'){
@@ -1167,6 +1274,27 @@ function draw(){
   // draw enemies
   for(const e of enemies){
     // draw shape based on type/shape attribute
+    // special visual for phaser: faint ripple when invisible, glow when visible
+    if(e.type === 'phaser'){
+      if(!e.visible){
+        ctx.save();
+        const pulse = 0.08 + 0.06 * Math.abs(Math.sin(Date.now() / 260));
+        ctx.globalAlpha = pulse;
+        ctx.strokeStyle = 'rgba(159,122,234,0.72)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 6, 0, Math.PI*2); ctx.stroke();
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.fillStyle = e.color;
+        ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.globalAlpha = 0.14; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 12, 0, Math.PI*2); ctx.fillStyle = e.color; ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+      continue;
+    }
     ctx.fillStyle = e.color;
     ctx.beginPath();
     if(e.type === 'charger' && e.warnTimer > 0){
@@ -1277,8 +1405,8 @@ function draw(){
       ctx.fillStyle = 'rgba(2,6,23,0.85)';
       ctx.strokeStyle = 'rgba(255,255,255,0.18)';
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(boxX, boxY, boxW, boxH, 6);
+      // draw rounded rect (use polyfill helper to support browsers without ctx.roundRect)
+      pathRoundRect(ctx, boxX, boxY, boxW, boxH, 6);
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = '#e6eef8';
