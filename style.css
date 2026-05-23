@@ -6,9 +6,47 @@ h1 { font-size: 20px; margin-bottom: 6px; }
 .hint { opacity: 0.8; font-size: 13px; margin-bottom: 8px; }
 #score, #best { font-weight: 700; margin-bottom: 4px; }
 canvas { display: block; width: 100vw; height: 100vh; cursor: none; }
-.overlay { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; z-index:30; background: linear-gradient(180deg, rgba(2,6,23,0.55), rgba(2,6,23,0.25)); backdrop-filter: blur(6px); }
+.overlay { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; z-index:30; background: linear-gradient(180deg, rgba(2,6,23,0.55), rgba(2,6,23,0.25)); backdrop-filter: blur(6px); pointer-events:none; }
 .overlay.hidden { display: none; }
-.overlay-content { background: linear-gradient(180deg,#071026,#081222); border: 1px solid rgba(255,255,255,0.06); padding: 14px 18px; border-radius: 12px; text-align:center; box-shadow: 0 6px 16px rgba(2,6,23,0.45); min-width: 260px; max-width: 420px; }
+.overlay-content { background: linear-gradient(180deg,#071026,#081222); border: 1px solid rgba(255,255,255,0.06); padding: 14px 18px; border-radius: 12px; text-align:center; box-shadow: 0 6px 16px rgba(2,6,23,0.45); min-width: 260px; max-width: 420px; pointer-events:auto; }
+.tutorial-panel{ max-width: 760px; min-width: 320px; text-align:left; }
+.tutorial-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.tutorial-header h2{ margin-bottom:4px; }
+.tutorial-counter{ min-width:72px; text-align:center; padding:6px 10px; border-radius:999px; background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); font-weight:800; color:#dff3ff; }
+.tutorial-progress{ height:8px; border-radius:999px; overflow:hidden; background: rgba(255,255,255,0.05); margin:8px 0 14px; }
+#tutorial-progress-fill{ height:100%; width:0%; border-radius:999px; background: linear-gradient(90deg,#2dd4bf,#60a5fa,#fb7185); transition: width 240ms ease; }
+.tutorial-body{ display:grid; grid-template-columns: 1.05fr 0.95fr; gap:14px; align-items:stretch; }
+.tutorial-screen{ position:relative; min-height:280px; border-radius:16px; padding:12px; background: linear-gradient(180deg, rgba(8,18,34,0.92), rgba(4,10,22,0.96)); border:1px solid rgba(255,255,255,0.08); overflow:hidden; }
+.tutorial-screen::before{ content:''; position:absolute; inset:0; background: radial-gradient(circle at 30% 20%, rgba(96,165,250,0.18), transparent 30%), radial-gradient(circle at 70% 75%, rgba(251,113,133,0.14), transparent 35%); pointer-events:none; }
+.tutorial-stage-tag{ position:relative; z-index:2; display:inline-flex; align-items:center; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; color:#012; background: linear-gradient(90deg,#2dd4bf,#60a5fa); box-shadow: 0 8px 24px rgba(45,212,191,0.18); }
+.tutorial-visual{ position:relative; z-index:1; margin-top:12px; height:226px; border-radius:14px; border:1px solid rgba(255,255,255,0.07); background: linear-gradient(180deg,#061122,#08152c); overflow:hidden; }
+.tutorial-visual::after{ content:''; position:absolute; inset:0; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.04), transparent 55%); }
+.tutorial-visual-image{ position:relative; z-index:1; width:100%; height:100%; display:block; object-fit:cover; border-radius:14px; }
+.tutorial-visual-dodge .tutorial-preview-cursor{ left:36%; top:63%; }
+.tutorial-visual-dodge .tutorial-preview-enemy.enemy-a{ left:82%; top:25%; }
+.tutorial-visual-dodge .tutorial-preview-enemy.enemy-b{ left:58%; top:18%; }
+.tutorial-visual-dodge .tutorial-preview-enemy.enemy-c{ left:74%; top:74%; }
+.tutorial-visual-telegraph .tutorial-preview-cursor{ left:28%; top:72%; }
+.tutorial-visual-telegraph .tutorial-preview-enemy.enemy-a{ left:32%; top:30%; background:#fb923c; }
+.tutorial-visual-telegraph .tutorial-preview-enemy.enemy-b{ left:68%; top:56%; background:#f97316; }
+.tutorial-visual-telegraph .tutorial-preview-boss-ring{ left:68%; top:40%; width:116px; height:116px; opacity:0.85; }
+.tutorial-visual-boss .tutorial-preview-cursor{ left:26%; top:66%; }
+.tutorial-visual-boss .tutorial-preview-boss-ring{ left:58%; top:44%; width:128px; height:128px; opacity:0.92; }
+.tutorial-visual-ready .tutorial-preview-cursor{ left:48%; top:58%; }
+.tutorial-copy{ display:flex; flex-direction:column; gap:10px; }
+.tutorial-copy h3{ font-size:18px; margin-top:2px; }
+.tutorial-bullets{ padding-left:18px; color:#dff3ff; line-height:1.5; display:flex; flex-direction:column; gap:8px; }
+.tutorial-dots{ display:flex; gap:6px; margin-top:auto; flex-wrap:wrap; }
+.tutorial-dot{ width:10px; height:10px; border-radius:999px; background: rgba(255,255,255,0.2); transition: transform 160ms ease, background 160ms ease, width 160ms ease; }
+.tutorial-dot.active{ width:22px; background: linear-gradient(90deg,#2dd4bf,#60a5fa); transform:scale(1.02); }
+.tutorial-controls{ display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; margin-top:14px; }
+/* tutorial visual now uses generated SVG images; old preview animations removed */
+@media (max-width: 760px){
+	.tutorial-panel{ min-width: 240px; max-width: 96vw; }
+	.tutorial-body{ grid-template-columns: 1fr; }
+	.tutorial-controls{ justify-content:stretch; }
+	.tutorial-controls .primary, .tutorial-controls .diff-btn{ flex:1 1 auto; }
+}
 .menu h2{ margin-bottom:6px; }
 .muted{ color: rgba(230,238,248,0.75); margin-bottom:8px; }
 .small{ font-size:12px; opacity:0.85 }
@@ -63,3 +101,12 @@ canvas { display: block; width: 100vw; height: 100vh; cursor: none; }
 
 /* make overlays slightly smaller on mobile */
 @media (max-width:600px){ .overlay-content{ min-width:200px; padding:12px } }
+
+/* Boss pending countdown and flash */
+#boss-timer.boss-pending{ display:inline-block; background: rgba(239,68,68,0.88); padding:5px 9px; border-radius:8px; color:#08111f; font-weight:800; box-shadow: 0 6px 16px rgba(239,68,68,0.18); animation: bossPulse 1.15s ease-in-out infinite; }
+@keyframes bossPulse{ 0% { transform: scale(1); opacity: 0.88 } 50% { transform: scale(1.05); opacity: 1 } 100% { transform: scale(1); opacity: 0.88 } }
+
+#boss-spawn-flash{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:180px; height:180px; border-radius:50%; border: 2px dashed rgba(255,214,170,0.72); background: radial-gradient(circle, rgba(255,90,90,0.12) 0%, rgba(255,90,90,0.06) 42%, rgba(255,90,90,0.0) 76%); pointer-events:none; z-index:35; animation: bossRing 1.05s ease-out infinite; box-shadow: 0 0 12px rgba(255,90,90,0.28); mix-blend-mode:screen; }
+@keyframes bossRing{ 0% { transform: translate(-50%,-50%) scale(0.82); opacity:0.62 } 70% { transform: translate(-50%,-50%) scale(1.24); opacity:0.14 } 100% { transform: translate(-50%,-50%) scale(1.3); opacity:0 } }
+
+.boss-spawn-hidden{ display:none !important }

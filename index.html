@@ -32,11 +32,60 @@
         <button class="diff-btn" data-diff="hard">Hard</button>
       </div>
       <div style="height:8px"></div>
+      <div style="text-align:center; margin-bottom:8px;">
+        <div class="small muted">Cursor Style</div>
+        <div style="display:flex; gap:8px; justify-content:center; margin-top:6px;">
+          <button id="cursorCircle" class="diff-btn">Circle</button>
+          <button id="cursorSquare" class="diff-btn selected">Square</button>
+        </div>
+        <label style="display:block; margin-top:8px; font-size:13px;">
+          <input id="cursorSmaller" type="checkbox" checked> Smaller cursor (-10%)
+        </label>
+      </div>
+      <div style="height:8px"></div>
       <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
         <button id="startBtn" class="primary">Start Game</button>
+        <button id="openTutorialStart" class="diff-btn">Tutorial Showcase</button>
         <button id="openSettingsStart" class="diff-btn">Settings</button>
       </div>
       
+    </div>
+  </div>
+
+  <div id="tutorial" class="overlay hidden">
+    <div class="overlay-content tutorial-panel">
+      <div class="tutorial-header">
+        <div>
+          <h2>Tutorial Showcase</h2>
+          <p class="muted">A quick run-through of the basics, presented like a short guided video.</p>
+        </div>
+        <div id="tutorial-counter" class="tutorial-counter">1 / 4</div>
+      </div>
+      <div class="tutorial-progress"><div id="tutorial-progress-fill"></div></div>
+      <div class="tutorial-body">
+        <div class="tutorial-screen">
+          <div id="tutorial-stage-tag" class="tutorial-stage-tag">Move</div>
+          <div id="tutorial-visual" class="tutorial-visual tutorial-visual-move">
+                <img id="tutorial-visual-image" class="tutorial-visual-image" alt="Tutorial preview" draggable="false">
+          </div>
+        </div>
+        <div class="tutorial-copy">
+          <h3 id="tutorial-title">Move your mouse</h3>
+          <p id="tutorial-copy" class="muted">Your cursor is the player. The OS cursor is hidden, and the rendered cursor follows your mouse.</p>
+          <ul id="tutorial-bullets" class="tutorial-bullets">
+            <li>Pick circle or square before starting.</li>
+            <li>Smaller cursor means a tighter visual target.</li>
+          </ul>
+          <div class="tutorial-dots" id="tutorial-dots"></div>
+        </div>
+      </div>
+      <div class="tutorial-controls">
+        <button id="tutorialPrev" class="diff-btn">Prev</button>
+        <button id="tutorialPlay" class="diff-btn selected">Pause</button>
+        <button id="tutorialNext" class="diff-btn">Next</button>
+        <button id="tutorialStart" class="primary">Start Game</button>
+        <button id="tutorialClose" class="diff-btn">Close</button>
+      </div>
     </div>
   </div>
 
@@ -70,6 +119,6 @@
       </div>
     </div>
   </div>
-  <script src="game.js"></script>
+  <script type="module" src="game.js"></script>
 </body>
 </html>
