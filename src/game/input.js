@@ -2,10 +2,12 @@ export function wireGameInput({
   canvas,
   startBtn,
   restartBtn,
+  returnToMenuBtn,
   diffBtns,
   openSettingsStart,
   openSettingsEnd,
   openTutorialStart,
+  debugSandboxStart,
   closeSettings,
   applySettings,
   document,
@@ -20,10 +22,12 @@ export function wireGameInput({
     onSpawnDebugEnemy,
     onClearEnemies,
     onStartGame,
+    onReturnToMainMenu,
     onDifficultyChange,
     onShowSettings,
     onHideSettings,
     onShowTutorial,
+    onStartDebugSandbox,
     onApplySettings
   } = handlers;
 
@@ -57,11 +61,13 @@ export function wireGameInput({
 
   canvas?.addEventListener('click', ()=>{ onStartGame?.(); });
   restartBtn?.addEventListener('click', ()=> onStartGame?.());
+  returnToMenuBtn?.addEventListener('click', ()=> onReturnToMainMenu?.());
   startBtn?.addEventListener('click', ()=> onStartGame?.());
   diffBtns?.forEach(b=> b.addEventListener('click', diffClickHandler(b)));
   openSettingsStart?.addEventListener('click', ()=> onShowSettings?.());
   openSettingsEnd?.addEventListener('click', ()=> onShowSettings?.());
   openTutorialStart?.addEventListener('click', ()=> onShowTutorial?.());
+  debugSandboxStart?.addEventListener('click', ()=> onStartDebugSandbox?.());
   closeSettings?.addEventListener('click', ()=> onHideSettings?.());
   applySettings?.addEventListener('click', ()=> onApplySettings?.());
 

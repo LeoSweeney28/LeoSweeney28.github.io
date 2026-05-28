@@ -23,6 +23,8 @@ export function createGameState({ settings, bestScore }){
     paused: false,
     debugMode: false,
     debugSandboxMode: false,
+    debugInvulnerable: false,
+    debugPathLines: false,
     elapsed: 0,
     _lastDOM: 0,
     fps: 0,

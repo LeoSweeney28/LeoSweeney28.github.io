@@ -7,6 +7,51 @@ export function createRenderGame({
   renderEnemyHitbox,
   renderObstacleHitbox
 }){
+  function drawProjectedPath(ctx, entity, width, height){
+    const baseSpeed = Math.max(12, entity.speed || entity.dashSpeed || 120);
+    let dirX = typeof entity.dx === 'number' ? entity.dx : 0;
+    let dirY = typeof entity.dy === 'number' ? entity.dy : 0;
+    const len = Math.hypot(dirX, dirY) || 1;
+    dirX /= len;
+    dirY /= len;
+    let px = entity.x;
+    let py = entity.y;
+    const stepDt = 0.10;
+    const steps = 24;
+
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    for(let i = 0; i < steps; i++){
+      const t = (i + 1) * stepDt;
+      if(entity.type === 'zigzag'){
+        const perpX = -dirY;
+        const perpY = dirX;
+        const phase = (entity.phase || 0) + (entity.freq || 5.5) * t;
+        const amp = Math.max(8, (entity.amp || 26) * 0.10);
+        px += dirX * baseSpeed * stepDt + perpX * Math.sin(phase) * amp;
+        py += dirY * baseSpeed * stepDt + perpY * Math.sin(phase) * amp;
+      } else {
+        let moveX = dirX;
+        let moveY = dirY;
+        let speed = baseSpeed;
+        if(entity.type === 'charger' && entity.warnTimer > 0){
+          moveX = entity.chargeDx || moveX;
+          moveY = entity.chargeDy || moveY;
+          speed *= 0.12;
+        }
+        if(entity.type === 'dasher' && entity.dashing){
+          speed = Math.max(speed, entity.dashSpeed || speed * 2.3);
+        }
+        const dLen = Math.hypot(moveX, moveY) || 1;
+        px += (moveX / dLen) * speed * stepDt;
+        py += (moveY / dLen) * speed * stepDt;
+      }
+      if(px < -120 || px > width + 120 || py < -120 || py > height + 120){ break; }
+      ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
   return function render(ctx){
     const width = state.width;
     const height = state.height;
@@ -148,6 +193,57 @@ export function createRenderGame({
       for(const t of state.obstacleTelegraphs){ renderObstacleHitbox(ctx, t); }
       for(const o of state.obstacles){ renderObstacleHitbox(ctx, o); }
       if(state.bossActive && state.boss){ renderEnemyHitbox(ctx, state.boss); }
+    }
+
+    if(state.debugMode && state.debugPathLines){
+      const now = Date.now();
+      ctx.save();
+      for(const e of state.enemies){
+        ctx.save();
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([8, 6]);
+        ctx.strokeStyle = 'rgba(125, 211, 252, 0.56)';
+        ctx.globalAlpha = 1;
+        if(e.type === 'shooter'){
+          const shotWindow = Math.max(0.18, e.shootInterval || 1);
+          const phase = 1 - Math.min(1, Math.max(0, (e.shootTimer || 0) / shotWindow));
+          const pulse = 0.35 + 0.65 * Math.abs(Math.sin(now / 120));
+          const flash = 0.28 + phase * 0.42 + pulse * 0.30;
+          ctx.setLineDash([3, 4]);
+          ctx.strokeStyle = 'rgba(253, 224, 71, 0.92)';
+          ctx.globalAlpha = Math.min(1, flash);
+          // Flash ring indicates shooter charge-up state.
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, e.r + 7 + phase * 5, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if(e.type === 'phaser'){
+          const phasePulse = 0.30 + 0.70 * Math.abs(Math.sin((now / 180) + (e.phaseTimer || 0) * 5));
+          if(e.visible){
+            ctx.setLineDash([10, 5]);
+            ctx.strokeStyle = 'rgba(196, 181, 253, 0.86)';
+            ctx.globalAlpha = 0.28 + phasePulse * 0.58;
+          } else {
+            ctx.setLineDash([2, 8]);
+            ctx.strokeStyle = 'rgba(167, 139, 250, 0.88)';
+            ctx.globalAlpha = 0.12 + phasePulse * 0.32;
+          }
+          // Phase ring toggles stronger when phaser is visible.
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, e.r + (e.visible ? 8 : 11), 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        drawProjectedPath(ctx, e, width, height);
+        ctx.restore();
+      }
+      if(state.bossActive && state.boss){
+        ctx.save();
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash([10, 6]);
+        ctx.strokeStyle = 'rgba(255, 170, 122, 0.62)';
+        drawProjectedPath(ctx, state.boss, width, height);
+        ctx.restore();
+      }
+      ctx.restore();
     }
 
     // Render player (used as the cursor). Respect chosen cursor shape and scale, hide OS cursor via CSS.

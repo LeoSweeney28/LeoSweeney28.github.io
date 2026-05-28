@@ -96,5 +96,9 @@ export function enemyDebugText(enemy, roundValFn){
   if(enemy.type === 'charger' && enemy.warnTimer !== null) {parts.push('warn:' + Math.max(0, roundValFn(enemy.warnTimer,2)));}
   if(enemy.speed !== null) {parts.push('spd:' + roundValFn(enemy.speed,2));}
   if(enemy.r !== null) {parts.push('r:' + Math.round(enemy.r));}
+  if(enemy.type === 'phaser'){
+    if(typeof enemy.visible === 'boolean') { parts.push(enemy.visible ? 'vis:on' : 'vis:off'); }
+    if(typeof enemy.phaseTimer === 'number') { parts.push('t:' + roundValFn(enemy.phaseTimer,2)); }
+  }
   return parts.join(' | ');
 }

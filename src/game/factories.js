@@ -149,21 +149,17 @@ export function createDebugEnemy({
     speedMultiplier,
     width,
     height,
-    mouse,
     player,
     rand,
     randomEnemySize,
     chooseEnemyShape
 }) {
-    const angle = rand(0, Math.PI * 2);
-    const radius = rand(180, 240);
-    const x = Math.max(0, Math.min(width, mouse.x + Math.cos(angle) * radius));
-    const y = Math.max(0, Math.min(height, mouse.y + Math.sin(angle) * radius));
-    let dx = mouse.x - x;
-    let dy = mouse.y - y;
-    const len = Math.hypot(dx, dy) || 1;
-    dx /= len;
-    dy /= len;
+    const x = Math.max(0, Math.min(width, width * 0.5));
+    const y = Math.max(0, Math.min(height, height * 0.5));
+    // Sandbox/debug spawns should not start pre-aimed at the player.
+    const launchAngle = rand(0, Math.PI * 2);
+    const dx = Math.cos(launchAngle);
+    const dy = Math.sin(launchAngle);
 
     const stageBoost = Math.min(1, (stage - 1) * 0.14 + elapsed / 90);
     const enemy = createBaseEnemy({ type, reason: 'debug', x, y, dx, dy, stage, speedMultiplier, elapsed, rand, randomEnemySize, chooseEnemyShape });

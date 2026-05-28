@@ -21,6 +21,8 @@ export function createUpdateGame({
 }){
   return function update(dt){
     if(state.paused) {return;}
+    const sandboxActive = state.debugMode && state.debugSandboxMode;
+    const playerInvulnerable = state.debugMode && state.debugInvulnerable;
 
     const { player, mouse } = state;
     player.prevX = player.x;
@@ -39,6 +41,16 @@ export function createUpdateGame({
     const targetScale = 1 + Math.min(0.12, speed / 6000);
     state.drawPlayerScale = lerp(state.drawPlayerScale, targetScale, 0.16);
 
+    if(sandboxActive){
+      state.bossPending = false;
+      state.bossActive = false;
+      state.boss = null;
+      state.bossTimer = 0;
+      state.bossPendingTimer = 0;
+      state.bossSpawnTele = null;
+    }
+
+    if(!state.enemiesPaused){
     for(let i=state.enemies.length-1;i>=0;i--){
       const e = state.enemies[i];
       e.phaseTimer += dt;
@@ -210,7 +222,10 @@ export function createUpdateGame({
       }
     }
 
-    if(state.bossPending && !state.bossActive){
+    // If enemies are paused, skip boss progression and spawn scheduling as well
+    if(!state.enemiesPaused){
+
+    if(!sandboxActive && state.bossPending && !state.bossActive){
       state.bossPendingTimer -= dt;
       // keep telegraph duration in sync if present
       if(state.bossSpawnTele && typeof state.bossSpawnTele.dur === 'number'){
@@ -224,7 +239,7 @@ export function createUpdateGame({
       }
     }
 
-    if(state.bossActive && state.boss){
+    if(!sandboxActive && state.bossActive && state.boss){
       state.boss.life += dt;
       state.bossTimer -= dt;
       if(state.bossTimer <= 0){
@@ -260,7 +275,7 @@ export function createUpdateGame({
 
     const profile = waveDifficulty(state.stage, settings.maxStage, state.difficulty);
 
-    if(!state.bossPending && !state.bossActive && state.stage >= 2 && Math.random() < profile.chaosChance && state.enemies.length < 42){
+    if(!state.enemiesPaused && !sandboxActive && !state.bossPending && !state.bossActive && state.stage >= 2 && Math.random() < profile.chaosChance && state.enemies.length < 42){
       spawnEnemy('chaos');
       if(state.stage >= 3 && Math.random() < profile.extraSpawnChance * 0.55) {spawnEnemy('chaos');}
     }
@@ -270,13 +285,13 @@ export function createUpdateGame({
       if(e.type === 'phaser' && !e.visible) {continue;}
       if(squareCircleHit(player.x, player.y, player.r, e.x, e.y, e.r - 2)){
         spawnParticles(player.x, player.y, 28, '#fff');
-        endGame();
+        if(!playerInvulnerable) { endGame(); }
       }
     }
 
     if(state.bossActive && state.boss && squareCircleHit(player.x, player.y, player.r, state.boss.x, state.boss.y, state.boss.r - 2)){
       spawnParticles(player.x, player.y, 34, '#fff');
-      endGame();
+      if(!playerInvulnerable) { endGame(); }
     }
 
     for(const o of state.obstacles){
@@ -289,7 +304,10 @@ export function createUpdateGame({
       const halfH = (o.h || o.r*2) * 0.5;
       const rectHit = Math.abs(player.x - o.x) < halfW + player.r && Math.abs(player.y - o.y) < halfH + player.r;
       const circleHit = squareCircleHit(player.x, player.y, player.r, o.x, o.y, (o.r || 16) - 2);
-      if(rectHit || circleHit){ spawnParticles(player.x, player.y, 28, '#fff'); endGame(); }
+      if(rectHit || circleHit){
+        spawnParticles(player.x, player.y, 28, '#fff');
+        if(!playerInvulnerable) { endGame(); }
+      }
     }
 
     for(let i=state.telegraphs.length-1;i>=0;i--){
@@ -341,7 +359,7 @@ export function createUpdateGame({
       }
     }
 
-    if(!state.bossPending && !state.bossActive){
+    if(!sandboxActive && !state.bossPending && !state.bossActive){
       state.elapsed += dt;
       if(state.elapsed >= state.nextStageTime){
         // schedule boss pending with telegraphed spawn point and max-stage-scaled warning
@@ -384,7 +402,10 @@ export function createUpdateGame({
       const b = state.bullets[i];
       b.x += b.vx * dt;
       b.y += b.vy * dt;
-      if(squareCircleHit(player.x, player.y, player.r, b.x, b.y, b.r)){ spawnParticles(player.x, player.y, 12, '#fff'); endGame(); }
+      if(squareCircleHit(player.x, player.y, player.r, b.x, b.y, b.r)){
+        spawnParticles(player.x, player.y, 12, '#fff');
+        if(!playerInvulnerable) { endGame(); }
+      }
       if(b.x < -40 || b.x > state.width+40 || b.y < -40 || b.y > state.height+40) {state.bullets.splice(i,1);}
     }
 
@@ -394,11 +415,11 @@ export function createUpdateGame({
       state.speedMultiplier = lerp(state.stageEase.fromSpeed, state.stageEase.toSpeed, eT);
       state.spawnInterval = lerp(state.stageEase.fromSpawn, state.stageEase.toSpawn, eT);
       if(t >= 1){ state.stageEase.active = false; state.stageEase = null; }
-    } else {
+    } else if(!sandboxActive) {
       state.speedMultiplier += dt * profile.passiveSpeedGrowth;
     }
 
-    if(!(state.debugMode && state.debugSandboxMode) && !state.bossPending && !state.bossActive){
+    if(!state.enemiesPaused && !sandboxActive && !state.bossPending && !state.bossActive){
       state.lastSpawn += dt*1000;
       if(state.lastSpawn > state.spawnInterval){
         state.lastSpawn = 0;
@@ -406,7 +427,7 @@ export function createUpdateGame({
         if(state.stage >= 3 && Math.random() < profile.extraSpawnChance){ scheduleSpawn('spawn'); }
       }
     }
-    if(!(state.debugMode && state.debugSandboxMode) && !state.bossPending && !state.bossActive){
+    if(!state.enemiesPaused && !sandboxActive && !state.bossPending && !state.bossActive){
       state.lastObstacleSpawn += dt;
       const obstacleTarget = Math.max(1.7, settings.obstacleBaseInterval * Math.max(0.45, profile.obstacleIntervalScale));
       if(settings.obstacleEnabled && state.lastObstacleSpawn > obstacleTarget){
@@ -416,7 +437,7 @@ export function createUpdateGame({
       }
     }
     const spawnDecay = profile.spawnDecayPerSec;
-    if(!state.bossPending && !state.bossActive) {state.spawnInterval = Math.max(220, state.spawnInterval - dt * spawnDecay);}
+    if(!state.enemiesPaused && !sandboxActive && !state.bossPending && !state.bossActive) {state.spawnInterval = Math.max(220, state.spawnInterval - dt * spawnDecay);}
 
     updateDebugPanel();
   };

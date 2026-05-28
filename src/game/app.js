@@ -21,6 +21,7 @@ import {
 import {
   createDebugPanel,
   updateDebugPanel as syncDebugPanel,
+  setDebugChromeVisible,
   showRoundBanner as emitRoundBanner,
   drawDebugEnemyHitbox as renderEnemyHitbox,
   drawDebugObstacleHitbox as renderObstacleHitbox
@@ -43,6 +44,7 @@ const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart');
+const returnToMenuBtn = document.getElementById('returnToMenu');
 const startScreen = document.getElementById('start');
 const startBtn = document.getElementById('startBtn');
 // Only wire real difficulty controls; other .diff-btn elements (cursor/settings buttons)
@@ -85,9 +87,48 @@ const bossDuration = 10;
 const BOSS_PENDING_TIMEOUT = { easy: 6.5, normal: 8.0, hard: 9.5 };
 
 const debugPanel = createDebugPanel(document);
+if (debugPanel) {
+  debugPanel.addEventListener('click', (event) => {
+    const target = event.target && event.target.closest ? event.target.closest('[data-debug-spawn-type], [data-debug-action]') : null;
+    if (!target || !debugPanel.contains(target)) { return; }
+    const spawnType = target.dataset.debugSpawnType;
+    if (spawnType) {
+      spawnDebugEnemy(spawnType, event.shiftKey ? 5 : 1);
+      return;
+    }
+    const debugAction = target.dataset.debugAction;
+    if (debugAction === 'menu') {
+      returnToMainMenu();
+      return;
+    }
+    if (debugAction === 'clear') {
+      state.enemies.length = 0;
+      state.bullets.length = 0;
+      state.telegraphs.length = 0;
+      state.obstacles.length = 0;
+      state.obstacleTelegraphs.length = 0;
+      return;
+    }
+    if (debugAction === 'sandbox') {
+      setDebugSandboxMode(!state.debugSandboxMode);
+      return;
+    }
+    if (debugAction === 'invulnerable') {
+      state.debugInvulnerable = !state.debugInvulnerable;
+      updateDebugPanel();
+      return;
+    }
+    if (debugAction === 'pathlines') {
+      state.debugPathLines = !state.debugPathLines;
+      updateDebugPanel();
+      return;
+    }
+  });
+}
 const tutorial = createTutorialShowcase({
   document,
-  onStartGame: () => startGame()
+  onStartGame: () => startGame(),
+  onOpenDebugSandbox: () => startDebugSandbox()
 });
 
 // Cursor chooser elements (start screen)
@@ -182,11 +223,14 @@ function updateDebugPanel() {
     obstacleTelegraphs: state.obstacleTelegraphs,
     spawnInterval: state.spawnInterval,
     debugSandboxMode: state.debugSandboxMode,
+    debugInvulnerable: state.debugInvulnerable,
+    debugPathLines: state.debugPathLines,
     fps: state.fps,
     speedMultiplier: state.speedMultiplier,
     player,
     paused: state.paused
   });
+  setDebugChromeVisible(document, state.debugMode);
 }
 
 // debug hitbox wrappers were removed; direct functions from UI are used by renderer
@@ -212,7 +256,6 @@ function spawnEnemy(reason = 'spawn') {
 }
 
 function spawnDebugEnemy(type = 'straight', count = 1) {
-  if (!state.debugMode) { return; }
   for (let n = 0; n < count; n++) {
     if (state.enemies.length >= (settings.enemyMax || 80)) { return; }
     const _d = createDebugEnemy({
@@ -234,6 +277,9 @@ function spawnDebugEnemy(type = 'straight', count = 1) {
 
 function setDebugSandboxMode(v) {
   state.debugSandboxMode = v;
+  if (v) {
+    state.debugMode = true;
+  }
   if (state.debugSandboxMode) {
     state.enemies.length = 0;
     state.telegraphs.length = 0;
@@ -243,6 +289,12 @@ function setDebugSandboxMode(v) {
     state.particles.length = 0;
     state.lastSpawn = 0;
     state.lastObstacleSpawn = 0;
+    state.bossPending = false;
+    state.bossActive = false;
+    state.boss = null;
+    state.bossTimer = 0;
+    state.bossPendingTimer = 0;
+    state.bossSpawnTele = null;
   }
   updateDebugPanel();
   try {
@@ -259,6 +311,45 @@ function setDebugSandboxMode(v) {
   } catch (e) { void e; }
 }
 
+function resetRunState() {
+  state.enemies.length = 0;
+  state.bullets.length = 0;
+  state.particles.length = 0;
+  state.telegraphs.length = 0;
+  state.obstacles.length = 0;
+  state.obstacleTelegraphs.length = 0;
+  state.lastObstacleSpawn = 0;
+  state.lastSpawn = 0;
+  state.spawnInterval = spawnInitial(settings.spawnBase || 1200);
+  state.lastTime = 0;
+  state.score = 0;
+  state.survivedCount = 0;
+  state.elapsed = 0;
+  state.stage = 1;
+  state.nextStageTime = settings.stageDuration;
+  state.speedMultiplier = 1;
+  state.boss = null;
+  state.bossActive = false;
+  state.bossPending = false;
+  state.bossPendingTimer = 0;
+  state.bossTimer = 0;
+  state.bossSpawnTele = null;
+  state.stageEase = null;
+  state.debugInvulnerable = false;
+  state.debugPathLines = false;
+  state.paused = false;
+  state.running = false;
+  if (scoreEl) { scoreEl.textContent = 'Score: 0'; }
+  if (multEl) { multEl.textContent = 'Multiplier: x1'; }
+  if (timeEl) { timeEl.textContent = 'Time: 0.0s'; }
+  if (bossTimerEl) { bossTimerEl.classList.add('hidden'); bossTimerEl.classList.remove('boss-pending'); bossTimerEl.textContent = 'Boss: 10.0s'; }
+  if (diffStageEl) { diffStageEl.textContent = '1'; }
+  if (diffProgressEl) { diffProgressEl.style.width = '0%'; }
+  if (overlayScore) { overlayScore.textContent = ''; }
+  if (overlayTitle) { overlayTitle.textContent = 'Game Over'; }
+  const bf = document.getElementById('boss-spawn-flash'); if (bf) { bf.classList.add('boss-spawn-hidden'); }
+}
+
 function spawnParticles(x, y, count, color) {
   const MAX = 300;
   if (state.particles.length > MAX) { return; } // drop excess
@@ -267,6 +358,23 @@ function spawnParticles(x, y, count, color) {
     const sp = Math.random() * 3 + 0.6;
     state.particles.push({ x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, r: Math.random() * 2 + 0.6, life: 20 + Math.random() * 20, maxLife: 20 + Math.random() * 20, color });
   }
+}
+
+function returnToMainMenu() {
+  resetRunState();
+  state.debugMode = false;
+  state.debugSandboxMode = false;
+  setGameCursorVisible(false);
+  if (overlay) { overlay.classList.add('hidden'); }
+  if (settingsModal) { settingsModal.classList.add('hidden'); }
+  if (tutorial && tutorial.close) { tutorial.close(); }
+  if (startScreen) { startScreen.classList.remove('hidden'); }
+  updateDebugPanel();
+}
+
+function setGameCursorVisible(running) {
+  if (!document || !document.body) { return; }
+  document.body.classList.toggle('game-running', !!running);
 }
 
 const updateGame = createUpdateGame({
@@ -468,31 +576,13 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
-function startGame() {
+function startGame({ debugSandbox = false } = {}) {
   tutorial.close();
-  // reset state fully to avoid carry-over between runs
-  state.enemies.length = 0;
-  state.bullets.length = 0;
-  state.particles.length = 0;
-  state.telegraphs.length = 0;
-  state.obstacles.length = 0;
-  state.obstacleTelegraphs.length = 0;
-  state.lastObstacleSpawn = 0;
-  state.lastSpawn = 0;
-  state.spawnInterval = spawnInitial(settings.spawnBase || 1200);
-  state.lastTime = 0;
-  state.score = 0;
-  state.survivedCount = 0;
-  state.elapsed = 0;
-  state.stage = 1;
-  state.nextStageTime = settings.stageDuration;
-  state.speedMultiplier = 1;
-  state.boss = null;
-  state.bossActive = false;
-  state.bossPending = false;
-  state.bossPendingTimer = 0;
-  state.bossTimer = 0;
+  state.debugMode = !!debugSandbox;
+  setDebugSandboxMode(!!debugSandbox);
+  resetRunState();
   state.running = true;
+  setGameCursorVisible(true);
   if (overlay) { overlay.classList.add('hidden'); }
   if (startScreen) { startScreen.classList.add('hidden'); }
   if (overlayTitle) { overlayTitle.textContent = 'Game Over'; }
@@ -504,8 +594,13 @@ function startGame() {
   updateDebugPanel();
 }
 
+function startDebugSandbox() {
+  startGame({ debugSandbox: true });
+}
+
 function endGame() {
   state.running = false;
+  setGameCursorVisible(false);
   if (overlay) { overlay.classList.remove('hidden'); }
   if (overlayTitle) { overlayTitle.textContent = 'Game Over'; }
   if (overlayScore) { overlayScore.textContent = 'Score: ' + state.score; }
@@ -520,6 +615,7 @@ function endGame() {
 const settingsModal = document.getElementById('settings');
 const openSettingsStart = document.getElementById('openSettingsStart');
 const openSettingsEnd = document.getElementById('openSettingsEnd');
+const debugSandboxStart = document.getElementById('debugSandboxStart');
 const closeSettings = document.getElementById('closeSettings');
 const applySettings = document.getElementById('applySettings');
 const inputStageDuration = document.getElementById('setting-stage-duration');
@@ -538,9 +634,11 @@ wireGameInput({
   canvas,
   startBtn,
   restartBtn,
+  returnToMenuBtn,
   diffBtns,
   openSettingsStart,
   openSettingsEnd,
+  debugSandboxStart,
   closeSettings,
   applySettings,
   document,
@@ -548,7 +646,16 @@ wireGameInput({
   handlers: {
     onMouseMove: (x, y) => { mouse.x = x; mouse.y = y; },
     onPauseToggle: () => setPaused(!state.paused),
-    onDebugToggle: () => { state.debugMode = !state.debugMode; if (!state.debugMode) { state.debugSandboxMode = false; } updateDebugPanel(); },
+    onDebugToggle: () => {
+      if (state.debugSandboxMode) {
+        state.debugMode = true;
+        updateDebugPanel();
+        return;
+      }
+      state.debugMode = !state.debugMode;
+      if (!state.debugMode) { state.debugSandboxMode = false; }
+      updateDebugPanel();
+    },
     onDebugSandboxToggle: () => { setDebugSandboxMode(!state.debugSandboxMode); },
     onSpawnDebugEnemy: (type, count) => spawnDebugEnemy(type, count),
     onClearEnemies: () => { state.enemies.length = 0; },
@@ -565,6 +672,8 @@ wireGameInput({
     },
     onShowSettings: () => showSettings(),
     onHideSettings: () => hideSettings(),
+    onStartDebugSandbox: () => startDebugSandbox(),
+    onReturnToMainMenu: () => returnToMainMenu(),
     onApplySettings: () => {
       if (inputStageDuration) { settings.stageDuration = Math.max(5, Number(inputStageDuration.value) || settings.stageDuration); }
       if (inputMultCap) { settings.multCap = Math.max(1, Number(inputMultCap.value) || settings.multCap); }
@@ -587,6 +696,7 @@ if (overlay) { overlay.classList.add('hidden'); }
 if (startScreen) { startScreen.classList.remove('hidden'); }
 if (overlayTitle) { overlayTitle.textContent = 'Game Over'; }
 if (overlayScore) { overlayScore.textContent = ''; }
+setGameCursorVisible(false);
 
 // --- Test hooks and debug controls (runtime helpers used by Playwright tests)
 try {
@@ -599,13 +709,15 @@ try {
     scheduleObstacle: function () { try { scheduleObstacle(); } catch (e) { void e; } },
     triggerGameOver: function () { try { endGame(); } catch (e) { void e; } },
     spawnEnemy: function () { try { spawnEnemy('test'); } catch (e) { void e; } },
-    spawnDebugEnemy: function (type, count) { try { spawnDebugEnemy(type, count || 1); } catch (e) { void e; } }
+    spawnDebugEnemy: function (type, count) { try { spawnDebugEnemy(type, count || 1); } catch (e) { void e; } },
+    returnToMainMenu: function () { try { returnToMainMenu(); } catch (e) { void e; } }
   };
 
   (function createDevControls() {
     if (document.getElementById('dev-controls')) { return; }
     const d = document.createElement('div');
     d.id = 'dev-controls';
+    d.classList.add('hidden');
     d.style.position = 'fixed';
     d.style.right = '8px';
     d.style.top = '8px';
@@ -624,6 +736,7 @@ try {
     d.appendChild(mkBtn('Spawn Enemy', () => window.__TEST_API__.spawnEnemy()));
     d.appendChild(mkBtn('Spawn Obstacle', () => window.__TEST_API__.scheduleObstacle()));
     d.appendChild(mkBtn('Game Over', () => window.__TEST_API__.triggerGameOver()));
+    d.appendChild(mkBtn('Main Menu', () => window.__TEST_API__.returnToMainMenu()));
     const toggle = mkBtn('Toggle Sandbox', () => { state.debugSandboxMode = !state.debugSandboxMode; setDebugSandboxMode(state.debugSandboxMode); });
     d.appendChild(toggle);
     document.body.appendChild(d);
