@@ -2,7 +2,12 @@ Mouse Dodge — simple browser 2D game
 
 How to run
 
-- Open `index.html` in your browser (double-click or use "Open File...").
+The game uses ES modules, which browsers refuse to load from `file://` URLs (CORS). You must serve it over HTTP:
+
+- `npm start` (uses the bundled `http-server`) and open http://localhost:8080/
+- Or any other static server pointed at the repo root.
+
+Opening `index.html` by double-clicking will leave the UI unresponsive — the module scripts will be blocked.
 
 Controls
 
@@ -32,7 +37,7 @@ Recent fixes (automated sweep)
 
 Quick test checklist
 --------------------
-1. Open `index.html` in a browser and open DevTools Console.
+1. Run `npm start` and open http://localhost:8080/ with DevTools Console open.
 2. Start the game and play a few rounds; watch for console errors.
 3. Verify HUD updates, telegraphed enemies/obstacles spawn, boss stages behave as described above.
 

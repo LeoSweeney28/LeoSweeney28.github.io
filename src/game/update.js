@@ -221,6 +221,7 @@ export function createUpdateGame({
         state.score += points;
       }
     }
+    }
 
     // If enemies are paused, skip boss progression and spawn scheduling as well
     if(!state.enemiesPaused){
@@ -271,6 +272,7 @@ export function createUpdateGame({
           endBossFight();
         }
       }
+    }
     }
 
     const profile = waveDifficulty(state.stage, settings.maxStage, state.difficulty);
